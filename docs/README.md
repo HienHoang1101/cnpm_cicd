@@ -14,6 +14,7 @@
 | [TEST_EXECUTION_REPORT.md](./TEST_EXECUTION_REPORT.md) | Báo cáo kết quả test | ✅ Updated |
 | [TEST_DASHBOARD_GUIDE.md](./TEST_DASHBOARD_GUIDE.md) | Hướng dẫn sử dụng Test Dashboard | ✅ Updated |
 | [TEST_REPORT_TEMPLATE.md](./TEST_REPORT_TEMPLATE.md) | Template báo cáo test | ✅ Available |
+| [SECURITY_TESTING_GUIDE.md](./SECURITY_TESTING_GUIDE.md) | Hướng dẫn Security Testing | ✅ New |
 
 ### 📡 API Documentation
 
@@ -43,6 +44,7 @@
 | **Unit Tests** | 107 tests across 7 services | ✅ All Passing |
 | **Integration Tests** | MongoDB Memory Server | ✅ Implemented |
 | **Performance Tests** | Artillery (Load, Stress, Spike, Soak) | ✅ Implemented |
+| **Security Tests** | npm audit, Trivy, CodeQL, OWASP tests | ✅ Implemented |
 | **Monitoring** | Prometheus + Grafana + Alertmanager | ✅ Configured |
 | **API Docs** | OpenAPI/Swagger + Postman | ✅ Complete |
 | **Test Docs** | Test Plan, Cases, Strategy, Reports | ✅ Complete |
@@ -57,7 +59,8 @@
 │  ✅ Integration:     25 test cases                     │
 │  ✅ E2E Tests:       8 test cases                      │
 │  ⚡ Performance:     4 test suites (Artillery)         │
-│  📊 Total:           144 test cases                    │
+│  🔒 Security:        27 test cases (OWASP)             │
+│  📊 Total:           171 test cases                    │
 └────────────────────────────────────────────────────────┘
 ```
 
