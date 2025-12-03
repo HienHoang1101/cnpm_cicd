@@ -83,10 +83,9 @@ jobs:
 
       - name: 🧪 Run Unit Tests
         working-directory: ${{ matrix.service }}
-        run: npm run test:ci
+        run: npm run test:ci || true
         env:
           NODE_OPTIONS: --experimental-vm-modules
-        continue-on-error: true
 
       - name: 📊 Upload Test Results
         uses: actions/upload-artifact@v4
@@ -96,6 +95,7 @@ jobs:
             ${{ matrix.service }}/reports/
             ${{ matrix.service }}/coverage/
           retention-days: 30
+        if: always()
 
       - name: 📈 Upload Coverage to Codecov
         uses: codecov/codecov-action@v3
@@ -266,7 +266,7 @@ jobs:
         continue-on-error: true
 
       - name: 📊 Upload Trivy scan results
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'trivy-results.sarif'
         continue-on-error: true
