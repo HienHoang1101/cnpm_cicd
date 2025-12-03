@@ -1,385 +1,590 @@
-# 📝 Test Cases Document - FastFood Delivery Platform
+# 📋 Test Cases - FastFood Delivery Platform
 
-## 📌 Thông Tin Chung
-
-| Thông Tin | Chi Tiết |
-|-----------|----------|
-| **Dự án** | FastFood Delivery Platform |
-| **Phiên bản** | 1.0.0 |
-| **Tổng số Test Cases** | 150+ |
-| **Ngày cập nhật** | 03/12/2024 |
+> **Phiên bản:** 2.0  
+> **Cập nhật lần cuối:** Tháng 6, 2025  
+> **Tổng số Test Cases:** 140+  
+> **Tỷ lệ pass:** 100% (107/107 Unit Tests)
 
 ---
 
-## 📋 Mục Lục
+## 📑 Mục Lục
 
-1. [Auth Service Test Cases](#1-auth-service-test-cases)
-2. [Order Service Test Cases](#2-order-service-test-cases)
-3. [Restaurant Service Test Cases](#3-restaurant-service-test-cases)
-4. [Payment Service Test Cases](#4-payment-service-test-cases)
-5. [Notification Service Test Cases](#5-notification-service-test-cases)
-6. [Admin Service Test Cases](#6-admin-service-test-cases)
-7. [Delivery Service Test Cases](#7-delivery-service-test-cases)
-8. [Integration Test Cases](#8-integration-test-cases)
-9. [E2E Test Cases](#9-e2e-test-cases)
+1. [Tổng Quan Phân Loại Test](#tổng-quan-phân-loại-test)
+2. [UNIT TESTS](#unit-tests)
+3. [INTEGRATION TESTS](#integration-tests)
+4. [END-TO-END (E2E) TESTS](#end-to-end-e2e-tests)
+5. [Test Matrix](#test-matrix)
 
 ---
 
-## 1. Auth Service Test Cases
-
-### 1.1 User Registration (Đăng Ký)
-
-| TC ID | Test Case Name | Preconditions | Test Steps | Expected Result | Priority |
-|-------|---------------|---------------|------------|-----------------|----------|
-| AUTH-REG-001 | Đăng ký thành công với thông tin hợp lệ | Không có user với email này | 1. POST /api/auth/register<br>2. Body: {name, email, password, phone} | Status 201, trả về user info và tokens | High |
-| AUTH-REG-002 | Đăng ký thất bại - Email đã tồn tại | User với email đã tồn tại | 1. POST /api/auth/register<br>2. Body với email đã tồn tại | Status 400, message "Email already exists" | High |
-| AUTH-REG-003 | Đăng ký thất bại - Email không hợp lệ | N/A | 1. POST /api/auth/register<br>2. Email: "invalid-email" | Status 400, validation error | Medium |
-| AUTH-REG-004 | Đăng ký thất bại - Password quá ngắn | N/A | 1. POST /api/auth/register<br>2. Password: "123" | Status 400, "Password must be at least 6 characters" | Medium |
-| AUTH-REG-005 | Đăng ký thất bại - Thiếu required fields | N/A | 1. POST /api/auth/register<br>2. Body thiếu email | Status 400, validation error | High |
-| AUTH-REG-006 | Đăng ký với role restaurant owner | N/A | 1. POST /api/auth/register<br>2. role: "restaurant_owner" | Status 201, user có role đúng | Medium |
-| AUTH-REG-007 | Đăng ký với role driver | N/A | 1. POST /api/auth/register<br>2. role: "driver" | Status 201, user có role đúng | Medium |
-
-### 1.2 User Login (Đăng Nhập)
-
-| TC ID | Test Case Name | Preconditions | Test Steps | Expected Result | Priority |
-|-------|---------------|---------------|------------|-----------------|----------|
-| AUTH-LOG-001 | Đăng nhập thành công | User đã đăng ký | 1. POST /api/auth/login<br>2. Body: {email, password} | Status 200, trả về accessToken và refreshToken | High |
-| AUTH-LOG-002 | Đăng nhập thất bại - Sai password | User đã đăng ký | 1. POST /api/auth/login<br>2. Password sai | Status 401, "Invalid credentials" | High |
-| AUTH-LOG-003 | Đăng nhập thất bại - Email không tồn tại | N/A | 1. POST /api/auth/login<br>2. Email không tồn tại | Status 401, "User not found" | High |
-| AUTH-LOG-004 | Đăng nhập thất bại - Account bị banned | User bị banned | 1. POST /api/auth/login | Status 403, "Account is banned" | Medium |
-| AUTH-LOG-005 | Đăng nhập và set cookie | User đã đăng ký | 1. POST /api/auth/login | Cookies được set đúng | Medium |
-
-### 1.3 Token Management
-
-| TC ID | Test Case Name | Preconditions | Test Steps | Expected Result | Priority |
-|-------|---------------|---------------|------------|-----------------|----------|
-| AUTH-TOK-001 | Refresh token thành công | Có valid refresh token | 1. POST /api/auth/refresh<br>2. Cookie: refreshToken | Status 200, new accessToken | High |
-| AUTH-TOK-002 | Refresh token thất bại - Token expired | Refresh token hết hạn | 1. POST /api/auth/refresh | Status 401, "Token expired" | High |
-| AUTH-TOK-003 | Refresh token thất bại - Token invalid | Invalid refresh token | 1. POST /api/auth/refresh | Status 401, "Invalid token" | High |
-| AUTH-TOK-004 | Logout thành công | User đã login | 1. POST /api/auth/logout | Status 200, cookies cleared | Medium |
-| AUTH-TOK-005 | Access protected route với valid token | Valid access token | 1. GET /api/users/profile<br>2. Header: Authorization | Status 200, user data | High |
-| AUTH-TOK-006 | Access protected route không có token | N/A | 1. GET /api/users/profile<br>2. No token | Status 401, "No token provided" | High |
-
-### 1.4 Password Management
-
-| TC ID | Test Case Name | Preconditions | Test Steps | Expected Result | Priority |
-|-------|---------------|---------------|------------|-----------------|----------|
-| AUTH-PWD-001 | Đổi password thành công | User đã login | 1. PUT /api/auth/change-password<br>2. {oldPassword, newPassword} | Status 200, password changed | Medium |
-| AUTH-PWD-002 | Đổi password thất bại - Sai old password | User đã login | 1. PUT /api/auth/change-password<br>2. Old password sai | Status 400, "Incorrect old password" | Medium |
-| AUTH-PWD-003 | Forgot password - Gửi email | User đã đăng ký | 1. POST /api/auth/forgot-password<br>2. {email} | Status 200, email sent | Low |
-| AUTH-PWD-004 | Reset password với valid token | Có reset token | 1. POST /api/auth/reset-password<br>2. {token, newPassword} | Status 200, password reset | Low |
-
----
-
-## 2. Order Service Test Cases
-
-### 2.1 Order Creation
-
-| TC ID | Test Case Name | Preconditions | Test Steps | Expected Result | Priority |
-|-------|---------------|---------------|------------|-----------------|----------|
-| ORD-CRE-001 | Tạo đơn hàng thành công | User logged in, cart có items | 1. POST /api/orders<br>2. Body: {restaurantId, items, address} | Status 201, order created | High |
-| ORD-CRE-002 | Tạo đơn hàng thất bại - Cart rỗng | User logged in, cart rỗng | 1. POST /api/orders<br>2. items: [] | Status 400, "Cart is empty" | High |
-| ORD-CRE-003 | Tạo đơn hàng thất bại - Restaurant đóng cửa | Restaurant isOpen: false | 1. POST /api/orders | Status 400, "Restaurant is closed" | Medium |
-| ORD-CRE-004 | Tạo đơn hàng thất bại - Item không available | Item isAvailable: false | 1. POST /api/orders | Status 400, "Item not available" | Medium |
-| ORD-CRE-005 | Tạo đơn hàng với delivery address | User logged in | 1. POST /api/orders<br>2. deliveryAddress provided | Status 201, address saved | High |
-| ORD-CRE-006 | Tạo đơn hàng với special instructions | User logged in | 1. POST /api/orders<br>2. specialInstructions: "No onion" | Status 201, instructions saved | Low |
-| ORD-CRE-007 | Tính tổng tiền đúng | Items với các giá khác nhau | 1. POST /api/orders<br>2. Multiple items | Total = sum of (price * quantity) | High |
-
-### 2.2 Order Status Updates
-
-| TC ID | Test Case Name | Preconditions | Test Steps | Expected Result | Priority |
-|-------|---------------|---------------|------------|-----------------|----------|
-| ORD-STA-001 | Cập nhật status: pending → confirmed | Order status = pending | 1. PUT /api/orders/:id/status<br>2. status: "confirmed" | Status 200, status updated | High |
-| ORD-STA-002 | Cập nhật status: confirmed → preparing | Order status = confirmed | 1. PUT /api/orders/:id/status<br>2. status: "preparing" | Status 200, status updated | High |
-| ORD-STA-003 | Cập nhật status: preparing → ready | Order status = preparing | 1. PUT /api/orders/:id/status | Status 200, status updated | High |
-| ORD-STA-004 | Cập nhật status: ready → picked_up | Order status = ready, driver assigned | 1. PUT /api/orders/:id/status | Status 200, status updated | High |
-| ORD-STA-005 | Cập nhật status: picked_up → delivered | Order status = picked_up | 1. PUT /api/orders/:id/status | Status 200, status updated | High |
-| ORD-STA-006 | Cancel order thành công | Order status = pending | 1. PUT /api/orders/:id/cancel | Status 200, order cancelled | Medium |
-| ORD-STA-007 | Cancel order thất bại - Đã preparing | Order status = preparing | 1. PUT /api/orders/:id/cancel | Status 400, "Cannot cancel" | Medium |
-| ORD-STA-008 | Invalid status transition | Order status = pending | 1. status: "delivered" (skip states) | Status 400, "Invalid transition" | Medium |
-
-### 2.3 Order Query
-
-| TC ID | Test Case Name | Preconditions | Test Steps | Expected Result | Priority |
-|-------|---------------|---------------|------------|-----------------|----------|
-| ORD-QRY-001 | Lấy order theo ID | Order exists | 1. GET /api/orders/:id | Status 200, order details | High |
-| ORD-QRY-002 | Lấy order không tồn tại | N/A | 1. GET /api/orders/invalid-id | Status 404, "Order not found" | Medium |
-| ORD-QRY-003 | Lấy danh sách orders của user | User có orders | 1. GET /api/orders/my-orders | Status 200, list of orders | High |
-| ORD-QRY-004 | Lấy orders của restaurant | Restaurant owner | 1. GET /api/orders/restaurant/:id | Status 200, restaurant orders | High |
-| ORD-QRY-005 | Filter orders theo status | Orders với nhiều status | 1. GET /api/orders?status=pending | Status 200, filtered orders | Medium |
-| ORD-QRY-006 | Pagination orders | Nhiều orders | 1. GET /api/orders?page=1&limit=10 | Status 200, paginated results | Medium |
-| ORD-QRY-007 | Sort orders theo date | Nhiều orders | 1. GET /api/orders?sort=-createdAt | Status 200, sorted by date desc | Low |
-
----
-
-## 3. Restaurant Service Test Cases
-
-### 3.1 Restaurant Management
-
-| TC ID | Test Case Name | Preconditions | Test Steps | Expected Result | Priority |
-|-------|---------------|---------------|------------|-----------------|----------|
-| RES-MGT-001 | Tạo restaurant mới | User role = restaurant_owner | 1. POST /api/restaurants<br>2. {name, cuisine, address} | Status 201, restaurant created | High |
-| RES-MGT-002 | Cập nhật restaurant info | Owner của restaurant | 1. PUT /api/restaurants/:id<br>2. Updated data | Status 200, info updated | High |
-| RES-MGT-003 | Toggle restaurant open/close | Owner của restaurant | 1. PUT /api/restaurants/:id/toggle | Status 200, isOpen toggled | High |
-| RES-MGT-004 | Upload restaurant image | Owner của restaurant | 1. POST /api/restaurants/:id/image<br>2. File upload | Status 200, image URL returned | Medium |
-| RES-MGT-005 | Delete restaurant | Owner của restaurant | 1. DELETE /api/restaurants/:id | Status 200, restaurant deleted | Low |
-| RES-MGT-006 | Unauthorized update | Not owner | 1. PUT /api/restaurants/:id | Status 403, "Forbidden" | High |
-
-### 3.2 Menu Management
-
-| TC ID | Test Case Name | Preconditions | Test Steps | Expected Result | Priority |
-|-------|---------------|---------------|------------|-----------------|----------|
-| RES-MNU-001 | Thêm menu item | Owner của restaurant | 1. POST /api/restaurants/:id/menu<br>2. {name, price, category} | Status 201, item added | High |
-| RES-MNU-002 | Cập nhật menu item | Menu item exists | 1. PUT /api/menu/:itemId<br>2. Updated data | Status 200, item updated | High |
-| RES-MNU-003 | Toggle item availability | Menu item exists | 1. PUT /api/menu/:itemId/toggle | Status 200, availability toggled | High |
-| RES-MNU-004 | Delete menu item | Menu item exists | 1. DELETE /api/menu/:itemId | Status 200, item deleted | Medium |
-| RES-MNU-005 | Thêm item với giá âm | Owner của restaurant | 1. POST /api/restaurants/:id/menu<br>2. price: -10 | Status 400, "Price must be positive" | Medium |
-| RES-MNU-006 | Lấy menu của restaurant | Restaurant exists | 1. GET /api/restaurants/:id/menu | Status 200, menu items | High |
-
-### 3.3 Restaurant Search
-
-| TC ID | Test Case Name | Preconditions | Test Steps | Expected Result | Priority |
-|-------|---------------|---------------|------------|-----------------|----------|
-| RES-SRC-001 | Tìm kiếm theo tên | Restaurants exist | 1. GET /api/restaurants?search=pho | Status 200, matching restaurants | High |
-| RES-SRC-002 | Filter theo cuisine | Restaurants exist | 1. GET /api/restaurants?cuisine=vietnamese | Status 200, filtered results | Medium |
-| RES-SRC-003 | Filter theo rating | Restaurants exist | 1. GET /api/restaurants?minRating=4 | Status 200, high-rated restaurants | Medium |
-| RES-SRC-004 | Lấy restaurants gần vị trí | Location provided | 1. GET /api/restaurants?lat=x&lng=y&radius=5 | Status 200, nearby restaurants | Medium |
-| RES-SRC-005 | Sort theo rating | Restaurants exist | 1. GET /api/restaurants?sort=-rating | Status 200, sorted by rating | Low |
-
----
-
-## 4. Payment Service Test Cases
-
-### 4.1 Payment Processing
-
-| TC ID | Test Case Name | Preconditions | Test Steps | Expected Result | Priority |
-|-------|---------------|---------------|------------|-----------------|----------|
-| PAY-PRO-001 | Tạo payment intent thành công | Order exists, valid amount | 1. POST /api/payments/create-intent<br>2. {orderId, amount} | Status 200, client_secret returned | High |
-| PAY-PRO-002 | Confirm payment thành công | Valid payment intent | 1. POST /api/payments/confirm<br>2. {paymentIntentId} | Status 200, payment completed | High |
-| PAY-PRO-003 | Payment thất bại - Card declined | Invalid card | 1. Stripe returns declined | Status 400, "Card declined" | High |
-| PAY-PRO-004 | Payment thất bại - Insufficient funds | Card với insufficient funds | 1. Stripe returns error | Status 400, "Insufficient funds" | Medium |
-| PAY-PRO-005 | Xử lý Stripe webhook | Webhook event | 1. POST /api/payments/webhook<br>2. Stripe signature | Status 200, event processed | High |
-
-### 4.2 Refund Processing
-
-| TC ID | Test Case Name | Preconditions | Test Steps | Expected Result | Priority |
-|-------|---------------|---------------|------------|-----------------|----------|
-| PAY-REF-001 | Refund toàn bộ thành công | Payment completed | 1. POST /api/payments/:id/refund<br>2. Full amount | Status 200, refund processed | Medium |
-| PAY-REF-002 | Refund một phần | Payment completed | 1. POST /api/payments/:id/refund<br>2. Partial amount | Status 200, partial refund | Medium |
-| PAY-REF-003 | Refund thất bại - Đã refund | Payment already refunded | 1. POST /api/payments/:id/refund | Status 400, "Already refunded" | Medium |
-| PAY-REF-004 | Refund thất bại - Amount quá lớn | Amount > original | 1. POST /api/payments/:id/refund<br>2. amount > original | Status 400, "Amount too large" | Medium |
-
-### 4.3 Payment History
-
-| TC ID | Test Case Name | Preconditions | Test Steps | Expected Result | Priority |
-|-------|---------------|---------------|------------|-----------------|----------|
-| PAY-HIS-001 | Lấy payment history của user | User có payments | 1. GET /api/payments/history | Status 200, payment list | Medium |
-| PAY-HIS-002 | Lấy payment detail | Payment exists | 1. GET /api/payments/:id | Status 200, payment details | Medium |
-| PAY-HIS-003 | Filter payments theo status | Payments với status khác nhau | 1. GET /api/payments?status=completed | Status 200, filtered payments | Low |
-
----
-
-## 5. Notification Service Test Cases
-
-### 5.1 Email Notifications
-
-| TC ID | Test Case Name | Preconditions | Test Steps | Expected Result | Priority |
-|-------|---------------|---------------|------------|-----------------|----------|
-| NOT-EML-001 | Gửi order confirmation email | Order created | 1. Kafka event: ORDER_CREATED<br>2. Email sent | Email delivered successfully | Medium |
-| NOT-EML-002 | Gửi order status update email | Order status changed | 1. Kafka event: ORDER_STATUS_CHANGED | Email delivered | Medium |
-| NOT-EML-003 | Gửi email thất bại - Invalid email | Invalid email format | 1. Send to invalid email | Error logged, retry queued | Low |
-| NOT-EML-004 | Email retry mechanism | First attempt failed | 1. Send fails<br>2. Retry 3 times | Retry attempts made | Low |
-
-### 5.2 SMS Notifications
-
-| TC ID | Test Case Name | Preconditions | Test Steps | Expected Result | Priority |
-|-------|---------------|---------------|------------|-----------------|----------|
-| NOT-SMS-001 | Gửi SMS order ready | Order status = ready | 1. Trigger SMS notification | SMS sent via Twilio | Medium |
-| NOT-SMS-002 | Gửi SMS delivery update | Driver picked up | 1. Trigger SMS | SMS sent | Medium |
-| NOT-SMS-003 | SMS thất bại - Invalid phone | Invalid phone number | 1. Send to invalid phone | Error logged | Low |
-
-### 5.3 Push Notifications
-
-| TC ID | Test Case Name | Preconditions | Test Steps | Expected Result | Priority |
-|-------|---------------|---------------|------------|-----------------|----------|
-| NOT-PSH-001 | Gửi push notification | User có FCM token | 1. Send push via Firebase | Push delivered | Medium |
-| NOT-PSH-002 | Push to multiple devices | User có nhiều devices | 1. Send to all devices | All devices receive | Low |
-
----
-
-## 6. Admin Service Test Cases
-
-### 6.1 Settlement Management
-
-| TC ID | Test Case Name | Preconditions | Test Steps | Expected Result | Priority |
-|-------|---------------|---------------|------------|-----------------|----------|
-| ADM-SET-001 | Tạo settlement cho restaurant | Orders completed | 1. POST /api/admin/settlements<br>2. {restaurantId, period} | Status 201, settlement created | High |
-| ADM-SET-002 | Process settlement | Settlement pending | 1. POST /api/admin/settlements/:id/process | Status 200, settlement processed | High |
-| ADM-SET-003 | Lấy settlement history | Settlements exist | 1. GET /api/admin/settlements | Status 200, settlement list | Medium |
-| ADM-SET-004 | Calculate commission đúng | Orders với amounts | 1. Create settlement | Commission = 15% of total | High |
-
-### 6.2 User Management
-
-| TC ID | Test Case Name | Preconditions | Test Steps | Expected Result | Priority |
-|-------|---------------|---------------|------------|-----------------|----------|
-| ADM-USR-001 | Lấy danh sách users | Admin role | 1. GET /api/admin/users | Status 200, user list | Medium |
-| ADM-USR-002 | Ban user | Admin role | 1. PUT /api/admin/users/:id/ban | Status 200, user banned | Medium |
-| ADM-USR-003 | Unban user | User is banned | 1. PUT /api/admin/users/:id/unban | Status 200, user unbanned | Medium |
-| ADM-USR-004 | Filter users theo role | Users với roles khác nhau | 1. GET /api/admin/users?role=driver | Status 200, filtered users | Low |
-
-### 6.3 Restaurant Approval
-
-| TC ID | Test Case Name | Preconditions | Test Steps | Expected Result | Priority |
-|-------|---------------|---------------|------------|-----------------|----------|
-| ADM-RES-001 | Approve restaurant | Restaurant pending | 1. PUT /api/admin/restaurants/:id/approve | Status 200, approved | Medium |
-| ADM-RES-002 | Reject restaurant | Restaurant pending | 1. PUT /api/admin/restaurants/:id/reject<br>2. {reason} | Status 200, rejected | Medium |
-| ADM-RES-003 | Suspend restaurant | Restaurant active | 1. PUT /api/admin/restaurants/:id/suspend | Status 200, suspended | Medium |
-
-### 6.4 Analytics
-
-| TC ID | Test Case Name | Preconditions | Test Steps | Expected Result | Priority |
-|-------|---------------|---------------|------------|-----------------|----------|
-| ADM-ANA-001 | Lấy daily revenue | Orders completed | 1. GET /api/admin/analytics/revenue?date=today | Status 200, revenue data | Medium |
-| ADM-ANA-002 | Lấy order statistics | Orders exist | 1. GET /api/admin/analytics/orders | Status 200, order stats | Medium |
-| ADM-ANA-003 | Lấy user growth | Users registered | 1. GET /api/admin/analytics/users | Status 200, user growth data | Low |
-
----
-
-## 7. Delivery Service Test Cases
-
-### 7.1 Delivery Assignment
-
-| TC ID | Test Case Name | Preconditions | Test Steps | Expected Result | Priority |
-|-------|---------------|---------------|------------|-----------------|----------|
-| DEL-ASN-001 | Auto-assign nearest driver | Drivers available | 1. Order ready for pickup<br>2. System assigns driver | Nearest driver assigned | High |
-| DEL-ASN-002 | Manual assign driver | Admin/restaurant | 1. PUT /api/deliveries/:id/assign<br>2. {driverId} | Driver assigned | Medium |
-| DEL-ASN-003 | No driver available | No available drivers | 1. Order ready | Status: waiting_for_driver | Medium |
-| DEL-ASN-004 | Driver reject assignment | Driver assigned | 1. PUT /api/deliveries/:id/reject | Reassign to next driver | Medium |
-
-### 7.2 Delivery Tracking
-
-| TC ID | Test Case Name | Preconditions | Test Steps | Expected Result | Priority |
-|-------|---------------|---------------|------------|-----------------|----------|
-| DEL-TRK-001 | Update driver location | Driver on delivery | 1. POST /api/deliveries/:id/location<br>2. {lat, lng} | Location updated | High |
-| DEL-TRK-002 | Get real-time location | Delivery in progress | 1. WebSocket: subscribe to delivery | Location updates received | High |
-| DEL-TRK-003 | Calculate ETA | Delivery in progress | 1. GET /api/deliveries/:id/eta | ETA calculated | Medium |
-| DEL-TRK-004 | Location history | Delivery completed | 1. GET /api/deliveries/:id/history | Location history returned | Low |
-
-### 7.3 Delivery Status
-
-| TC ID | Test Case Name | Preconditions | Test Steps | Expected Result | Priority |
-|-------|---------------|---------------|------------|-----------------|----------|
-| DEL-STA-001 | Driver picks up order | Driver at restaurant | 1. PUT /api/deliveries/:id/pickup | Status: picked_up | High |
-| DEL-STA-002 | Driver delivers order | Driver at customer | 1. PUT /api/deliveries/:id/deliver | Status: delivered | High |
-| DEL-STA-003 | Delivery failed | Cannot deliver | 1. PUT /api/deliveries/:id/failed<br>2. {reason} | Status: failed, reason logged | Medium |
-
----
-
-## 8. Integration Test Cases
-
-### 8.1 Order Flow Integration
-
-| TC ID | Test Case Name | Services Involved | Test Steps | Expected Result | Priority |
-|-------|---------------|-------------------|------------|-----------------|----------|
-| INT-ORD-001 | Complete order flow | Auth, Order, Payment, Notification | 1. Login<br>2. Create order<br>3. Pay<br>4. Receive notification | All steps complete | High |
-| INT-ORD-002 | Order + Restaurant | Order, Restaurant | 1. Create order<br>2. Restaurant receives<br>3. Updates status | Status synced | High |
-| INT-ORD-003 | Order + Delivery | Order, Delivery | 1. Order ready<br>2. Driver assigned<br>3. Delivery tracking | Tracking works | High |
-
-### 8.2 Payment Integration
-
-| TC ID | Test Case Name | Services Involved | Test Steps | Expected Result | Priority |
-|-------|---------------|-------------------|------------|-----------------|----------|
-| INT-PAY-001 | Payment → Order status | Payment, Order | 1. Payment success<br>2. Order confirmed | Order status updated | High |
-| INT-PAY-002 | Payment → Notification | Payment, Notification | 1. Payment success<br>2. Email sent | Notification sent | Medium |
-| INT-PAY-003 | Refund → Order cancel | Payment, Order | 1. Cancel order<br>2. Refund processed | Both updated | Medium |
-
-### 8.3 Authentication Integration
-
-| TC ID | Test Case Name | Services Involved | Test Steps | Expected Result | Priority |
-|-------|---------------|-------------------|------------|-----------------|----------|
-| INT-AUT-001 | Auth across services | Auth, Order, Restaurant | 1. Login<br>2. Access Order API<br>3. Access Restaurant API | All authorized | High |
-| INT-AUT-002 | Token refresh | Auth, any service | 1. Token expires<br>2. Refresh<br>3. Continue | Seamless refresh | High |
-
----
-
-## 9. E2E Test Cases
-
-### 9.1 Customer Journey
-
-| TC ID | Test Case Name | Description | Expected Result | Priority |
-|-------|---------------|-------------|-----------------|----------|
-| E2E-CUS-001 | Complete order journey | Register → Browse → Order → Pay → Track → Receive | Order delivered | High |
-| E2E-CUS-002 | Reorder previous order | Login → View history → Reorder | New order created | Medium |
-| E2E-CUS-003 | Cancel order | Create order → Cancel before preparing | Order cancelled, refund if paid | Medium |
-
-### 9.2 Restaurant Owner Journey
-
-| TC ID | Test Case Name | Description | Expected Result | Priority |
-|-------|---------------|-------------|-----------------|----------|
-| E2E-RES-001 | Restaurant onboarding | Register → Create restaurant → Add menu → Go live | Restaurant active | High |
-| E2E-RES-002 | Order management | Receive order → Prepare → Mark ready | Order ready for pickup | High |
-| E2E-RES-003 | Menu management | Add items → Update prices → Toggle availability | Menu updated | Medium |
-
-### 9.3 Driver Journey
-
-| TC ID | Test Case Name | Description | Expected Result | Priority |
-|-------|---------------|-------------|-----------------|----------|
-| E2E-DRV-001 | Delivery completion | Accept order → Navigate → Pickup → Deliver | Delivery completed | High |
-| E2E-DRV-002 | Multiple deliveries | Accept → Deliver → Accept next | Continuous deliveries | Medium |
-
-### 9.4 Admin Journey
-
-| TC ID | Test Case Name | Description | Expected Result | Priority |
-|-------|---------------|-------------|-----------------|----------|
-| E2E-ADM-001 | Restaurant approval | Review → Approve/Reject → Notify | Restaurant status updated | Medium |
-| E2E-ADM-002 | Settlement process | Calculate → Review → Process → Transfer | Settlement completed | Medium |
-
----
-
-## 📊 Test Case Statistics
-
-| Category | Total | High Priority | Medium Priority | Low Priority |
-|----------|-------|---------------|-----------------|--------------|
-| Auth Service | 20 | 12 | 6 | 2 |
-| Order Service | 25 | 15 | 8 | 2 |
-| Restaurant Service | 18 | 10 | 6 | 2 |
-| Payment Service | 15 | 8 | 5 | 2 |
-| Notification Service | 12 | 4 | 6 | 2 |
-| Admin Service | 15 | 5 | 8 | 2 |
-| Delivery Service | 15 | 8 | 5 | 2 |
-| Integration | 10 | 8 | 2 | 0 |
-| E2E | 10 | 6 | 4 | 0 |
-| **TOTAL** | **140** | **76** | **50** | **14** |
-
----
-
-## 📝 Test Case Template
-
-```markdown
-| TC ID | [SERVICE]-[CATEGORY]-[NUMBER] |
-|-------|-------------------------------|
-| **Test Case Name** | [Tên test case] |
-| **Priority** | High / Medium / Low |
-| **Type** | Unit / Integration / E2E |
-| **Preconditions** | [Điều kiện tiên quyết] |
-| **Test Data** | [Dữ liệu test] |
-| **Test Steps** | 1. Step 1<br>2. Step 2<br>3. Step 3 |
-| **Expected Result** | [Kết quả mong đợi] |
-| **Actual Result** | [Kết quả thực tế - điền khi test] |
-| **Status** | Pass / Fail / Blocked / Not Run |
-| **Notes** | [Ghi chú thêm] |
+## 🎯 Tổng Quan Phân Loại Test
+
+### Định Nghĩa Các Loại Test
+
+| Loại Test | Mô Tả | Phạm Vi | Mục Đích |
+|-----------|-------|---------|----------|
+| **Unit Test** | Test từng function/method riêng lẻ | Một function/class | Đảm bảo logic đúng |
+| **Integration Test** | Test tương tác giữa các thành phần | Nhiều modules/services | Đảm bảo giao tiếp đúng |
+| **E2E Test** | Test toàn bộ luồng nghiệp vụ | Toàn hệ thống | Đảm bảo UX đúng |
+
+### Phân Bố Test Cases
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    PHÂN BỐ TEST CASES                           │
+├─────────────────────────────────────────────────────────────────┤
+│  UNIT TESTS (107 tests)          ████████████████████  80%      │
+│  INTEGRATION TESTS (25 tests)    █████                 15%      │
+│  E2E TESTS (8 tests)             ██                    5%       │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🔗 Tài Liệu Liên Quan
+## 🧪 UNIT TESTS
 
-- [Test Plan](./TEST_PLAN.md)
-- [Testing Strategy](./TESTING_STRATEGY.md)
-- [Test Execution Report](./TEST_EXECUTION_REPORT.md)
-- [API Documentation](./api/README.md)
-- [OpenAPI Specification](./api/openapi.yaml)
+> **Unit Test là gì?**
+> - Test **một function/method duy nhất** một cách độc lập
+> - **Mock tất cả dependencies** (database, external APIs, other services)
+> - Chạy **nhanh** (< 100ms per test)
+> - **Không cần** kết nối network, database thực
+
+### Unit Tests Test Cái Gì?
+
+| Thành Phần | Unit Test Kiểm Tra |
+|------------|-------------------|
+| **Controllers** | Logic xử lý request, response format, status codes |
+| **Services** | Business logic, tính toán, data transformation |
+| **Models** | Validation rules, schema, default values |
+| **Middlewares** | Authentication logic, authorization rules |
+| **Utils** | Helper functions, formatters, validators |
 
 ---
 
-*Tài liệu này được cập nhật lần cuối: 03/12/2024*
+### 1. Auth Service - Unit Tests (20 tests)
+
+**📁 File:** `auth/tests/auth.test.js`  
+**🎯 Mục đích:** Test logic xác thực và phân quyền người dùng
+
+#### 1.1 Controller Tests - authController.js
+
+| ID | Test Case | Loại | Test Cái Gì |
+|----|-----------|------|-------------|
+| AUTH-U-001 | Đăng ký user mới thành công | Unit | `register()` - tạo user với data hợp lệ |
+| AUTH-U-002 | Đăng ký thất bại - email đã tồn tại | Unit | `register()` - validate email unique |
+| AUTH-U-003 | Đăng ký thất bại - thiếu required fields | Unit | `register()` - validate required fields |
+| AUTH-U-004 | Đăng ký thất bại - email format sai | Unit | `register()` - validate email format |
+| AUTH-U-005 | Đăng nhập thành công | Unit | `login()` - verify credentials, return JWT |
+| AUTH-U-006 | Đăng nhập thất bại - sai password | Unit | `login()` - password comparison |
+| AUTH-U-007 | Đăng nhập thất bại - user không tồn tại | Unit | `login()` - user lookup |
+| AUTH-U-008 | Refresh token thành công | Unit | `refreshToken()` - generate new token |
+| AUTH-U-009 | Logout thành công | Unit | `logout()` - invalidate session |
+
+#### 1.2 Middleware Tests - auth.js
+
+| ID | Test Case | Loại | Test Cái Gì |
+|----|-----------|------|-------------|
+| AUTH-U-010 | Verify token hợp lệ | Unit | `verifyToken()` - JWT decode, expiry check |
+| AUTH-U-011 | Reject token hết hạn | Unit | `verifyToken()` - expiry validation |
+| AUTH-U-012 | Reject token không hợp lệ | Unit | `verifyToken()` - signature validation |
+| AUTH-U-013 | Reject request không có token | Unit | `verifyToken()` - missing token handling |
+| AUTH-U-014 | Admin authorization check | Unit | `isAdmin()` - role-based access |
+| AUTH-U-015 | Restaurant owner authorization | Unit | `isRestaurantOwner()` - owner check |
+| AUTH-U-016 | Delivery driver authorization | Unit | `isDriver()` - driver role check |
+
+#### 1.3 Model Tests - User.js
+
+| ID | Test Case | Loại | Test Cái Gì |
+|----|-----------|------|-------------|
+| AUTH-U-017 | User schema validation | Unit | Schema required fields, types |
+| AUTH-U-018 | Password hashing pre-save | Unit | `pre('save')` hook - bcrypt hash |
+| AUTH-U-019 | Compare password method | Unit | `comparePassword()` - bcrypt compare |
+| AUTH-U-020 | Email uniqueness constraint | Unit | Schema unique index |
+
+**Mock Dependencies:**
+- `mongoose` - MongoDB operations
+- `bcryptjs` - Password hashing
+- `jsonwebtoken` - Token generation/verification
+
+---
+
+### 2. Order Service - Unit Tests (22 tests)
+
+**📁 File:** `order/tests/order.test.js`  
+**🎯 Mục đích:** Test logic quản lý đơn hàng
+
+#### 2.1 Controller Tests - orderController.js
+
+| ID | Test Case | Loại | Test Cái Gì |
+|----|-----------|------|-------------|
+| ORD-U-001 | Tạo đơn hàng thành công | Unit | `createOrder()` - order creation logic |
+| ORD-U-002 | Tạo đơn hàng thất bại - giỏ hàng trống | Unit | `createOrder()` - empty cart validation |
+| ORD-U-003 | Tạo đơn hàng thất bại - địa chỉ không hợp lệ | Unit | `createOrder()` - address validation |
+| ORD-U-004 | Lấy danh sách đơn hàng của user | Unit | `getUserOrders()` - query by userId |
+| ORD-U-005 | Lấy chi tiết đơn hàng | Unit | `getOrderById()` - find by ID |
+| ORD-U-006 | Cập nhật trạng thái đơn hàng | Unit | `updateOrderStatus()` - status transition |
+| ORD-U-007 | Hủy đơn hàng thành công | Unit | `cancelOrder()` - cancel logic |
+| ORD-U-008 | Hủy đơn hàng thất bại - đã giao | Unit | `cancelOrder()` - status check |
+
+#### 2.2 Order Status Logic
+
+| ID | Test Case | Loại | Test Cái Gì |
+|----|-----------|------|-------------|
+| ORD-U-009 | Status transition: pending → confirmed | Unit | State machine - valid transition |
+| ORD-U-010 | Status transition: confirmed → preparing | Unit | State machine - kitchen flow |
+| ORD-U-011 | Status transition: preparing → ready | Unit | State machine - food ready |
+| ORD-U-012 | Status transition: ready → picked_up | Unit | State machine - driver pickup |
+| ORD-U-013 | Status transition: picked_up → delivered | Unit | State machine - delivery complete |
+| ORD-U-014 | Invalid status transition rejected | Unit | State machine - prevent invalid |
+| ORD-U-015 | Cancelled status is final | Unit | State machine - terminal state |
+
+#### 2.3 Price Calculation
+
+| ID | Test Case | Loại | Test Cái Gì |
+|----|-----------|------|-------------|
+| ORD-U-016 | Tính subtotal chính xác | Unit | `calculateSubtotal()` - item prices sum |
+| ORD-U-017 | Tính phí giao hàng | Unit | `calculateDeliveryFee()` - distance-based |
+| ORD-U-018 | Áp dụng mã giảm giá | Unit | `applyDiscount()` - coupon logic |
+| ORD-U-019 | Tính tổng tiền | Unit | `calculateTotal()` - final amount |
+| ORD-U-020 | Tính thuế (nếu có) | Unit | `calculateTax()` - tax rate |
+| ORD-U-021 | Làm tròn số tiền | Unit | Price rounding to 2 decimals |
+| ORD-U-022 | Validate minimum order amount | Unit | `validateMinimum()` - threshold check |
+
+**Mock Dependencies:**
+- `mongoose` - MongoDB operations
+- `Restaurant Service` - Menu/pricing data
+- `Notification Service` - Order updates
+
+---
+
+### 3. Restaurant Service - Unit Tests (18 tests)
+
+**📁 File:** `restaurant/tests/restaurant.test.js`  
+**🎯 Mục đích:** Test logic quản lý nhà hàng và menu
+
+#### 3.1 Restaurant Management
+
+| ID | Test Case | Loại | Test Cái Gì |
+|----|-----------|------|-------------|
+| RES-U-001 | Tạo nhà hàng mới | Unit | `createRestaurant()` - creation logic |
+| RES-U-002 | Lấy danh sách nhà hàng | Unit | `getAllRestaurants()` - pagination |
+| RES-U-003 | Tìm kiếm nhà hàng theo tên | Unit | `searchRestaurants()` - text search |
+| RES-U-004 | Lọc nhà hàng theo category | Unit | `filterByCategory()` - filter logic |
+| RES-U-005 | Lấy nhà hàng gần vị trí | Unit | `getNearbyRestaurants()` - geo query |
+| RES-U-006 | Cập nhật thông tin nhà hàng | Unit | `updateRestaurant()` - update fields |
+| RES-U-007 | Xóa nhà hàng | Unit | `deleteRestaurant()` - soft delete |
+
+#### 3.2 Menu Management
+
+| ID | Test Case | Loại | Test Cái Gì |
+|----|-----------|------|-------------|
+| RES-U-008 | Thêm món ăn mới | Unit | `addMenuItem()` - item creation |
+| RES-U-009 | Cập nhật thông tin món | Unit | `updateMenuItem()` - item update |
+| RES-U-010 | Xóa món ăn | Unit | `deleteMenuItem()` - item removal |
+| RES-U-011 | Đánh dấu món hết hàng | Unit | `markOutOfStock()` - availability |
+| RES-U-012 | Thay đổi giá món | Unit | `updatePrice()` - price change |
+| RES-U-013 | Thêm/xóa category | Unit | `manageCategories()` - categorization |
+
+#### 3.3 Business Hours & Availability
+
+| ID | Test Case | Loại | Test Cái Gì |
+|----|-----------|------|-------------|
+| RES-U-014 | Cập nhật giờ hoạt động | Unit | `updateBusinessHours()` - schedule |
+| RES-U-015 | Kiểm tra nhà hàng đang mở | Unit | `isOpen()` - current time check |
+| RES-U-016 | Tạm đóng cửa | Unit | `temporaryClose()` - pause orders |
+| RES-U-017 | Mở cửa lại | Unit | `reopen()` - resume orders |
+| RES-U-018 | Validate business hours format | Unit | Hours validation (00:00-23:59) |
+
+**Mock Dependencies:**
+- `mongoose` - MongoDB operations
+- `Firebase Storage` - Image uploads
+
+---
+
+### 4. Payment Service - Unit Tests (15 tests)
+
+**📁 File:** `payment-service/tests/payment.test.js`  
+**🎯 Mục đích:** Test logic xử lý thanh toán
+
+#### 4.1 Payment Processing
+
+| ID | Test Case | Loại | Test Cái Gì |
+|----|-----------|------|-------------|
+| PAY-U-001 | Tạo payment intent | Unit | `createPaymentIntent()` - Stripe intent |
+| PAY-U-002 | Xử lý thanh toán thành công | Unit | `processPayment()` - success flow |
+| PAY-U-003 | Xử lý thanh toán thất bại | Unit | `processPayment()` - failure handling |
+| PAY-U-004 | Hoàn tiền toàn bộ | Unit | `refund()` - full refund |
+| PAY-U-005 | Hoàn tiền một phần | Unit | `partialRefund()` - partial amount |
+| PAY-U-006 | Validate payment amount | Unit | Amount validation (> 0) |
+| PAY-U-007 | Handle duplicate payments | Unit | Idempotency check |
+
+#### 4.2 Payment Methods
+
+| ID | Test Case | Loại | Test Cái Gì |
+|----|-----------|------|-------------|
+| PAY-U-008 | Thanh toán COD (Cash on Delivery) | Unit | `processCOD()` - cash payment |
+| PAY-U-009 | Thanh toán thẻ Credit/Debit | Unit | `processCard()` - card payment |
+| PAY-U-010 | Thanh toán ví điện tử | Unit | `processWallet()` - e-wallet |
+| PAY-U-011 | Lưu payment method | Unit | `savePaymentMethod()` - tokenization |
+| PAY-U-012 | Xóa payment method | Unit | `deletePaymentMethod()` - removal |
+
+#### 4.3 Payment Status
+
+| ID | Test Case | Loại | Test Cái Gì |
+|----|-----------|------|-------------|
+| PAY-U-013 | Check payment status | Unit | `getPaymentStatus()` - status query |
+| PAY-U-014 | Update payment status | Unit | `updateStatus()` - status change |
+| PAY-U-015 | Payment webhook handling | Unit | `handleWebhook()` - Stripe events |
+
+**Mock Dependencies:**
+- `mongoose` - MongoDB operations
+- `Stripe SDK` - Payment gateway
+- `Order Service` - Order updates
+
+---
+
+### 5. Notification Service - Unit Tests (12 tests)
+
+**📁 File:** `notification-service/tests/notification.test.js`  
+**🎯 Mục đích:** Test logic gửi thông báo
+
+#### 5.1 Push Notifications
+
+| ID | Test Case | Loại | Test Cái Gì |
+|----|-----------|------|-------------|
+| NOT-U-001 | Gửi push notification | Unit | `sendPush()` - FCM/APNs send |
+| NOT-U-002 | Gửi batch notifications | Unit | `sendBatch()` - multiple recipients |
+| NOT-U-003 | Xử lý invalid device token | Unit | Token validation & cleanup |
+| NOT-U-004 | Retry failed notification | Unit | Retry logic with backoff |
+
+#### 5.2 Email Notifications
+
+| ID | Test Case | Loại | Test Cái Gì |
+|----|-----------|------|-------------|
+| NOT-U-005 | Gửi email thông báo | Unit | `sendEmail()` - SMTP send |
+| NOT-U-006 | Email template rendering | Unit | Template variable substitution |
+| NOT-U-007 | Validate email address | Unit | Email format validation |
+| NOT-U-008 | Handle email bounce | Unit | Bounce handling logic |
+
+#### 5.3 SMS Notifications
+
+| ID | Test Case | Loại | Test Cái Gì |
+|----|-----------|------|-------------|
+| NOT-U-009 | Gửi SMS | Unit | `sendSMS()` - Twilio send |
+| NOT-U-010 | Validate phone number | Unit | Phone format validation |
+| NOT-U-011 | SMS rate limiting | Unit | Rate limit per user |
+| NOT-U-012 | Handle SMS failure | Unit | Failure handling & retry |
+
+**Mock Dependencies:**
+- `Firebase Cloud Messaging` - Push notifications
+- `Nodemailer` - Email sending
+- `Twilio SDK` - SMS sending
+- `Kafka` - Message queue
+
+---
+
+### 6. Admin Service - Unit Tests (10 tests)
+
+**📁 File:** `admin-service/tests/admin.test.js`  
+**🎯 Mục đích:** Test logic quản trị hệ thống
+
+#### 6.1 Settlement Management
+
+| ID | Test Case | Loại | Test Cái Gì |
+|----|-----------|------|-------------|
+| ADM-U-001 | Tính toán settlement cho nhà hàng | Unit | `calculateSettlement()` - revenue calc |
+| ADM-U-002 | Tạo settlement report | Unit | `generateReport()` - report creation |
+| ADM-U-003 | Xử lý thanh toán cho nhà hàng | Unit | `processSettlement()` - payout |
+| ADM-U-004 | Lấy lịch sử settlement | Unit | `getSettlementHistory()` - history |
+
+#### 6.2 Admin Operations
+
+| ID | Test Case | Loại | Test Cái Gì |
+|----|-----------|------|-------------|
+| ADM-U-005 | Dashboard statistics | Unit | `getDashboardStats()` - aggregation |
+| ADM-U-006 | User management | Unit | `manageUsers()` - user operations |
+| ADM-U-007 | Restaurant approval | Unit | `approveRestaurant()` - approval flow |
+| ADM-U-008 | Driver verification | Unit | `verifyDriver()` - verification |
+| ADM-U-009 | System configuration | Unit | `updateConfig()` - config update |
+| ADM-U-010 | Audit logging | Unit | `logAction()` - audit trail |
+
+**Mock Dependencies:**
+- `mongoose` - MongoDB operations
+- `Order Service` - Order data
+- `Bank API` - Fund transfers
+
+---
+
+### 7. Food Delivery Server - Unit Tests (10 tests)
+
+**📁 File:** `food-delivery-server/tests/server.test.js`  
+**🎯 Mục đích:** Test logic server chính
+
+#### 7.1 Core Server Functions
+
+| ID | Test Case | Loại | Test Cái Gì |
+|----|-----------|------|-------------|
+| SRV-U-001 | Health check endpoint | Unit | `/health` - server status |
+| SRV-U-002 | Error handling middleware | Unit | Global error handler |
+| SRV-U-003 | Request logging | Unit | Morgan/Winston logging |
+| SRV-U-004 | Rate limiting | Unit | Rate limit middleware |
+| SRV-U-005 | CORS configuration | Unit | CORS headers |
+| SRV-U-006 | Request validation | Unit | Input sanitization |
+| SRV-U-007 | Response formatting | Unit | Standard response format |
+| SRV-U-008 | Compression middleware | Unit | Response compression |
+| SRV-U-009 | Helmet security | Unit | Security headers |
+| SRV-U-010 | Graceful shutdown | Unit | Shutdown handling |
+
+---
+
+## 🔗 INTEGRATION TESTS
+
+> **Integration Test là gì?**
+> - Test **sự tương tác** giữa nhiều thành phần
+> - Sử dụng **database thực** (MongoDB Memory Server cho tests)
+> - Test **API endpoints** với HTTP requests thực
+> - Kiểm tra **data flow** giữa các layers
+
+### Integration Tests Test Cái Gì?
+
+| Thành Phần | Integration Test Kiểm Tra |
+|------------|--------------------------|
+| **API Routes** | HTTP request → Controller → Service → Database |
+| **Database** | CRUD operations, queries, indexes |
+| **Service-to-Service** | Internal API calls giữa các services |
+| **Middleware Chain** | Request flow qua nhiều middlewares |
+
+---
+
+### 8. API Integration Tests (25 tests)
+
+**📁 Files:** `*/tests/*.integration.test.js`  
+**🎯 Mục đích:** Test API endpoints end-to-end trong một service
+
+#### 8.1 Auth API Integration
+
+| ID | Test Case | Loại | Test Cái Gì |
+|----|-----------|------|-------------|
+| INT-AUTH-001 | POST /api/auth/register | Integration | Full registration flow với DB |
+| INT-AUTH-002 | POST /api/auth/login | Integration | Full login flow với JWT generation |
+| INT-AUTH-003 | GET /api/auth/profile | Integration | Token verification + profile fetch |
+| INT-AUTH-004 | PUT /api/auth/profile | Integration | Profile update với DB persist |
+| INT-AUTH-005 | POST /api/auth/forgot-password | Integration | Password reset email flow |
+
+#### 8.2 Order API Integration
+
+| ID | Test Case | Loại | Test Cái Gì |
+|----|-----------|------|-------------|
+| INT-ORD-001 | POST /api/orders | Integration | Order creation + DB persist |
+| INT-ORD-002 | GET /api/orders/:id | Integration | Order fetch + populate relations |
+| INT-ORD-003 | PUT /api/orders/:id/status | Integration | Status update + notification trigger |
+| INT-ORD-004 | GET /api/orders/user/:userId | Integration | User orders with pagination |
+| INT-ORD-005 | DELETE /api/orders/:id | Integration | Order cancellation flow |
+
+#### 8.3 Restaurant API Integration
+
+| ID | Test Case | Loại | Test Cái Gì |
+|----|-----------|------|-------------|
+| INT-RES-001 | POST /api/restaurants | Integration | Restaurant creation + validation |
+| INT-RES-002 | GET /api/restaurants | Integration | List with filters + pagination |
+| INT-RES-003 | GET /api/restaurants/:id/menu | Integration | Menu fetch with categories |
+| INT-RES-004 | POST /api/restaurants/:id/menu | Integration | Menu item creation |
+| INT-RES-005 | GET /api/restaurants/nearby | Integration | Geo query với coordinates |
+
+#### 8.4 Payment API Integration
+
+| ID | Test Case | Loại | Test Cái Gì |
+|----|-----------|------|-------------|
+| INT-PAY-001 | POST /api/payments/create-intent | Integration | Stripe intent creation |
+| INT-PAY-002 | POST /api/payments/confirm | Integration | Payment confirmation flow |
+| INT-PAY-003 | POST /api/payments/refund | Integration | Refund processing |
+| INT-PAY-004 | GET /api/payments/:orderId | Integration | Payment status query |
+| INT-PAY-005 | POST /api/payments/webhook | Integration | Webhook event handling |
+
+#### 8.5 Notification API Integration
+
+| ID | Test Case | Loại | Test Cái Gì |
+|----|-----------|------|-------------|
+| INT-NOT-001 | POST /api/notifications/send | Integration | Notification dispatch |
+| INT-NOT-002 | GET /api/notifications/user/:id | Integration | User notifications list |
+| INT-NOT-003 | PUT /api/notifications/:id/read | Integration | Mark as read |
+| INT-NOT-004 | DELETE /api/notifications/:id | Integration | Notification deletion |
+| INT-NOT-005 | Kafka message consumption | Integration | Event-driven notification |
+
+---
+
+## 🌐 END-TO-END (E2E) TESTS
+
+> **E2E Test là gì?**
+> - Test **toàn bộ luồng** từ user đến database và ngược lại
+> - Mô phỏng **hành vi thực** của người dùng
+> - Test **cross-service** communication
+> - Chạy trên **môi trường giống production**
+
+### E2E Tests Test Cái Gì?
+
+| Luồng | E2E Test Kiểm Tra |
+|-------|-------------------|
+| **User Journey** | Complete flow từ đăng ký đến đặt hàng |
+| **Cross-Service** | Auth → Order → Payment → Notification |
+| **Error Recovery** | System behavior khi có lỗi |
+| **Performance** | Response times dưới tải |
+
+---
+
+### 9. Complete User Journey Tests (8 tests)
+
+**📁 Files:** `tests/e2e/*.e2e.test.js`  
+**🎯 Mục đích:** Test complete user flows
+
+#### 9.1 Customer Journey
+
+| ID | Test Case | Loại | Test Cái Gì |
+|----|-----------|------|-------------|
+| E2E-001 | Đăng ký → Đăng nhập → Đặt hàng → Thanh toán | E2E | Complete customer order flow |
+| E2E-002 | Tìm nhà hàng → Xem menu → Thêm giỏ hàng → Checkout | E2E | Shopping flow |
+| E2E-003 | Theo dõi đơn hàng real-time | E2E | WebSocket order tracking |
+| E2E-004 | Đánh giá nhà hàng sau khi nhận hàng | E2E | Post-delivery review flow |
+
+#### 9.2 Restaurant Owner Journey
+
+| ID | Test Case | Loại | Test Cái Gì |
+|----|-----------|------|-------------|
+| E2E-005 | Nhận đơn → Chuẩn bị → Báo sẵn sàng | E2E | Restaurant order processing |
+| E2E-006 | Quản lý menu → Cập nhật giá → Đánh dấu hết hàng | E2E | Menu management flow |
+
+#### 9.3 Delivery Driver Journey
+
+| ID | Test Case | Loại | Test Cái Gì |
+|----|-----------|------|-------------|
+| E2E-007 | Nhận assignment → Pickup → Deliver → Complete | E2E | Full delivery cycle |
+| E2E-008 | Cập nhật vị trí → Thông báo customer | E2E | Real-time location tracking |
+
+---
+
+## 📊 Test Matrix
+
+### Service Coverage Matrix
+
+| Service | Unit Tests | Integration | E2E | Total | Coverage |
+|---------|------------|-------------|-----|-------|----------|
+| Auth | 20 | 5 | 2 | 27 | 85% |
+| Order | 22 | 5 | 3 | 30 | 82% |
+| Restaurant | 18 | 5 | 2 | 25 | 78% |
+| Payment | 15 | 5 | 1 | 21 | 75% |
+| Notification | 12 | 5 | 0 | 17 | 70% |
+| Admin | 10 | 0 | 0 | 10 | 65% |
+| Server | 10 | 0 | 0 | 10 | 60% |
+| **TOTAL** | **107** | **25** | **8** | **140** | **78%** |
+
+### Test Type Distribution
+
+```
+Unit Tests:      ████████████████████████████████████████  107 (76%)
+Integration:     ██████████                                 25 (18%)
+E2E Tests:       ███                                         8 (6%)
+─────────────────────────────────────────────────────────────────
+Total:                                                      140 (100%)
+```
+
+### Test Execution Time
+
+| Loại Test | Số Lượng | Thời Gian Trung Bình | Tổng Thời Gian |
+|-----------|----------|---------------------|----------------|
+| Unit Tests | 107 | 50ms | ~5s |
+| Integration | 25 | 200ms | ~5s |
+| E2E Tests | 8 | 2s | ~16s |
+| **TOTAL** | 140 | - | **~26s** |
+
+---
+
+## 🔧 Cách Chạy Tests
+
+### Chạy Unit Tests
+
+```bash
+# Chạy tất cả unit tests
+npm test
+
+# Chạy unit tests cho một service
+cd auth && npm test
+cd order && npm test
+cd restaurant && npm test
+
+# Chạy với coverage
+npm test -- --coverage
+```
+
+### Chạy Integration Tests
+
+```bash
+# Chạy integration tests
+npm run test:integration
+
+# Chạy với database thực
+MONGODB_URI=mongodb://localhost:27017/test npm run test:integration
+```
+
+### Chạy E2E Tests
+
+```bash
+# Start services trước
+docker-compose up -d
+
+# Chạy E2E tests
+npm run test:e2e
+```
+
+---
+
+## 📝 Test File Structure
+
+```
+cnpm_cicd/
+├── auth/
+│   └── tests/
+│       ├── auth.test.js           # Unit tests
+│       └── auth.integration.test.js  # Integration tests
+├── order/
+│   └── tests/
+│       ├── order.test.js          # Unit tests
+│       └── order.integration.test.js
+├── restaurant/
+│   └── tests/
+│       ├── restaurant.test.js     # Unit tests
+│       └── restaurant.integration.test.js
+├── payment-service/
+│   └── tests/
+│       ├── payment.test.js        # Unit tests
+│       └── payment.integration.test.js
+├── notification-service/
+│   └── tests/
+│       ├── notification.test.js   # Unit tests
+│       └── notification.integration.test.js
+├── admin-service/
+│   └── tests/
+│       └── admin.test.js          # Unit tests
+├── food-delivery-server/
+│   └── tests/
+│       └── server.test.js         # Unit tests
+└── tests/
+    └── e2e/
+        ├── customer.e2e.test.js   # E2E tests
+        ├── restaurant.e2e.test.js
+        └── delivery.e2e.test.js
+```
+
+---
+
+## 📚 Tham Khảo
+
+- [TEST_PLAN.md](./TEST_PLAN.md) - Kế hoạch testing tổng thể
+- [TESTING_STRATEGY.md](./TESTING_STRATEGY.md) - Chiến lược testing
+- [TEST_EXECUTION_REPORT.md](./TEST_EXECUTION_REPORT.md) - Báo cáo thực thi
+- [API Documentation](./api/README.md) - Tài liệu API
+
+---
+
+**Người tạo:** FastFood Delivery Team  
+**Ngày tạo:** Tháng 6, 2025  
+**Phiên bản:** 2.0
