@@ -18,15 +18,16 @@ global:
   # Email Configuration (Gmail SMTP)
   # Replace with your Gmail credentials
   smtp_smarthost: 'smtp.gmail.com:587'
-  smtp_from: 'fastfood-alerts@gmail.com'
-  smtp_auth_username: 'your-email@gmail.com'
-  smtp_auth_password: 'your-gmail-app-password'
+  smtp_from: 'SMTP_FROM_EMAIL'
+  smtp_auth_username: 'SMTP_AUTH_USERNAME'
+  smtp_auth_password: 'SMTP_AUTH_PASSWORD'
   smtp_require_tls: true
   resolve_timeout: 5m
 
   # Slack Configuration - Replace with your webhook URL
   # Get it from: https://api.slack.com/apps → Incoming Webhooks
-  slack_api_url: 'https://hooks.slack.com/services/YOUR/WEBHOOK/URL'
+  # Set via environment variable SLACK_WEBHOOK_URL or replace SLACK_WEBHOOK_PLACEHOLDER
+  slack_api_url: 'SLACK_WEBHOOK_URL_PLACEHOLDER'
 
 route:
   group_by: ['alertname', 'service', 'severity']
@@ -108,11 +109,12 @@ receivers:
           
           <{{ .ExternalURL }}|🔗 View in Alertmanager>
         color: 'danger'
-    email_configs:
-      - to: 'admin@your-company.com'
-        send_resolved: true
-        headers:
-          Subject: '🚨 [CRITICAL] {{ .GroupLabels.alertname }} - FastFood Delivery'
+    # Email temporarily disabled - uncomment when Gmail App Password is configured
+    # email_configs:
+    #   - to: 'admin@your-company.com'
+    #     send_resolved: true
+    #     headers:
+    #       Subject: '🚨 [CRITICAL] {{ .GroupLabels.alertname }} - FastFood Delivery'
 
 inhibit_rules:
   # Suppress warning if critical is firing for same alert

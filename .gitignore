@@ -18,7 +18,12 @@
 **/.env
 **/.env.*
 !.env.example
+!secrets.env.example
 .env.local
+
+# Secrets files
+**/secrets.env
+**/alertmanager.secrets.yml
 
 ### Build artifacts ###
 **/dist/

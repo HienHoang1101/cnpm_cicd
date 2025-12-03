@@ -6,7 +6,19 @@ Alertmanager xử lý alerts được gửi từ Prometheus và route chúng đ�
 
 ## 📋 Quick Setup
 
-### 1. Slack Configuration
+### 1. Tạo Secrets File
+
+```bash
+# Copy file mẫu
+cp monitoring/alertmanager/secrets.env.example monitoring/alertmanager/secrets.env
+
+# Edit với credentials thực của bạn
+nano monitoring/alertmanager/secrets.env
+```
+
+**⚠️ QUAN TRỌNG:** File `secrets.env` chứa credentials và KHÔNG được commit lên git!
+
+### 2. Slack Configuration
 
 #### Bước 1: Tạo Slack App
 1. Truy cập https://api.slack.com/apps
