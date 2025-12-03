@@ -3,36 +3,36 @@
 
 groups:
   # =========================================
-  # SERVICE AVAILABILITY ALERTS
+  # INFRASTRUCTURE AVAILABILITY ALERTS
   # =========================================
-  - name: service_availability
+  - name: infrastructure_availability
     rules:
-      - alert: ServiceDown
-        expr: up == 0
+      - alert: PrometheusDown
+        expr: up{job="prometheus"} == 0
         for: 1m
         labels:
           severity: critical
         annotations:
-          summary: "Service {{ $labels.job }} is down"
-          description: "{{ $labels.job }} has been down for more than 1 minute."
+          summary: "Prometheus is down"
+          description: "Prometheus has been down for more than 1 minute."
 
-      - alert: ServiceHighResponseTime
-        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
-        for: 5m
+      - alert: NodeExporterDown
+        expr: up{job="node-exporter"} == 0
+        for: 1m
         labels:
           severity: warning
         annotations:
-          summary: "High response time on {{ $labels.service }}"
-          description: "95th percentile response time is above 2 seconds for {{ $labels.service }}"
+          summary: "Node Exporter is down"
+          description: "Node Exporter has been down for more than 1 minute."
 
-      - alert: ServiceHighErrorRate
-        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
-        for: 5m
+      - alert: CAdvisorDown
+        expr: up{job="cadvisor"} == 0
+        for: 1m
         labels:
-          severity: critical
+          severity: warning
         annotations:
-          summary: "High error rate on {{ $labels.service }}"
-          description: "Error rate is above 5% for {{ $labels.service }}"
+          summary: "cAdvisor is down"
+          description: "cAdvisor has been down for more than 1 minute."
 
   # =========================================
   # CONTAINER ALERTS

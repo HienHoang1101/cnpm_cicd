@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-export const PORT = 5006;
-export const MONGOURL="mongodb+srv://Root:root@bookstore.ca33wzl.mongodb.net/ResturantOrder?retryWrites=true&w=majority&appName=BookStore"
+export const PORT = process.env.PORT || 5003;
+export const MONGOURL = process.env.MONGO_URI || "mongodb://mongodb:27017/restaurant";

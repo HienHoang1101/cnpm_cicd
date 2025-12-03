@@ -37,7 +37,7 @@ scrape_configs:
         target_label: instance
         replacement: 'host'
 
-  # cAdvisor - Container metrics
+  # cAdvisor - Container metrics (primary source for service metrics)
   - job_name: 'cadvisor'
     static_configs:
       - targets: ['cadvisor:8080']
@@ -47,101 +47,64 @@ scrape_configs:
       - source_labels: [container_label_com_docker_compose_project]
         target_label: project
 
-  # MongoDB Exporter
-  - job_name: 'mongodb'
-    static_configs:
-      - targets: ['mongodb-exporter:9216']
-
-  # =========================================
-  # MICROSERVICES METRICS
-  # =========================================
-  
-  # Auth Service
-  - job_name: 'auth-service'
-    static_configs:
-      - targets: ['auth-service:5001']
-        labels:
-          service: 'auth'
-          type: 'backend'
-    metrics_path: /metrics
-    scrape_interval: 10s
-
-  # Order Service
-  - job_name: 'order-service'
-    static_configs:
-      - targets: ['order-service:5002']
-        labels:
-          service: 'order'
-          type: 'backend'
-    metrics_path: /metrics
-    scrape_interval: 10s
-
-  # Restaurant Service
-  - job_name: 'restaurant-service'
-    static_configs:
-      - targets: ['restaurant-service:5003']
-        labels:
-          service: 'restaurant'
-          type: 'backend'
-    metrics_path: /metrics
-    scrape_interval: 10s
-
-  # Delivery Service
-  - job_name: 'delivery-service'
-    static_configs:
-      - targets: ['delivery-service:5004']
-        labels:
-          service: 'delivery'
-          type: 'backend'
-    metrics_path: /metrics
-    scrape_interval: 10s
-
-  # Payment Service
-  - job_name: 'payment-service'
-    static_configs:
-      - targets: ['payment-service:5005']
-        labels:
-          service: 'payment'
-          type: 'backend'
-    metrics_path: /metrics
-    scrape_interval: 10s
-
-  # Notification Service
-  - job_name: 'notification-service'
-    static_configs:
-      - targets: ['notification-service:5006']
-        labels:
-          service: 'notification'
-          type: 'backend'
-    metrics_path: /metrics
-    scrape_interval: 10s
-
-  # Admin Service
-  - job_name: 'admin-service'
-    static_configs:
-      - targets: ['admin-service:5008']
-        labels:
-          service: 'admin'
-          type: 'backend'
-    metrics_path: /metrics
-    scrape_interval: 10s
-
-  # =========================================
-  # BLACK BOX EXPORTER - Health Checks
-  # =========================================
+  # Blackbox Exporter - HTTP probes for service health
   - job_name: 'blackbox-http'
     metrics_path: /probe
     params:
       module: [http_2xx]
     static_configs:
       - targets:
-        - http://auth-service:5001/health
-        - http://order-service:5002/health
-        - http://restaurant-service:5003/health
-        - http://delivery-service:5004/health
-        - http://payment-service:5005/health
-        - http://notification-service:5006/health
-        - http://admin-service:5008/health
+        - http://auth-service:5001
+        - http://order-service:5002
+        - http://restaurant-service:5003
+        - http://delivery-service:5004
+        - http://payment-service:5005
+        - http://notification-service:5006
+        - http://admin-service:5008
+        labels:
+          probe_type: 'http'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+      - source_labels: [__param_target]
+        regex: 'http://([^:]+):.*'
+        target_label: service
+        replacement: '${1}'
+
+  # MongoDB TCP probe
+  - job_name: 'blackbox-tcp-mongodb'
+    metrics_path: /probe
+    params:
+      module: [tcp_connect]
+    static_configs:
+      - targets:
+        - mongodb:27017
+        labels:
+          service: 'mongodb'
+          probe_type: 'tcp'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  # Redis TCP probe
+  - job_name: 'blackbox-tcp-redis'
+    metrics_path: /probe
+    params:
+      module: [tcp_connect]
+    static_configs:
+      - targets:
+        - redis:6379
+        labels:
+          service: 'redis'
+          probe_type: 'tcp'
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
