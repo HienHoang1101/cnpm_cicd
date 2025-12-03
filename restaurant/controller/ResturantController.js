@@ -3,9 +3,15 @@ import { Dish } from "../model/dish.js";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
 import { ref, deleteObject } from "firebase/storage";
-import { sendKafkaNotification } from "shared-kafka";
+// import { sendKafkaNotification } from "shared-kafka"; // Disabled - Kafka not configured
 import axios from "axios";
 dotenv.config();
+
+// Helper function to send notification (placeholder for Kafka)
+const sendKafkaNotification = async (topic, message) => {
+  console.log(`[Notification] Topic: ${topic}, Message:`, message);
+  // TODO: Implement actual Kafka notification when configured
+};
 
 //
 export const addRestaurant = async (req, res) => {

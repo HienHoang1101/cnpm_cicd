@@ -1,6 +1,49 @@
 version: "3.8"
 
 services:
+  # ========================================
+  # INFRASTRUCTURE SERVICES
+  # ========================================
+  
+  # MongoDB Database
+  mongodb:
+    image: mongo:6
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password123
+      - MONGO_INITDB_DATABASE=fastfood
+    volumes:
+      - mongodb_data:/data/db
+      - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ========================================
+  # APPLICATION SERVICES
+  # ========================================
+
   # Auth Service
   auth-service:
     build:
@@ -100,4 +143,64 @@ services:
       - ORDER_SERVICE_URL=${ORDER_SERVICE_URL}
       - CORS_ORIGIN=${CORS_ORIGIN}
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+    depends_on:
+      mongodb:
+        condition: service_healthy
     restart: unless-stopped
+
+  # Restaurant Service
+  restaurant-service:
+    build:
+      context: ./restaurant
+      dockerfile: Dockerfile
+    container_name: restaurant-service
+    ports:
+      - "5003:5003"
+    environment:
+      - PORT=5003
+      - NODE_ENV=${NODE_ENV:-development}
+      - MONGO_URI=mongodb://admin:password123@mongodb:27017/fastfood_restaurant?authSource=admin
+      - JWT_SECRET=${JWT_SECRET:-jwt-secret-key}
+      - AUTH_SERVICE_URL=http://auth-service:5001
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Notification Service
+  notification-service:
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+    container_name: notification-service
+    ports:
+      - "5006:5006"
+    environment:
+      - PORT=5006
+      - NODE_ENV=${NODE_ENV:-development}
+      - MONGO_URI=mongodb://admin:password123@mongodb:27017/fastfood_notification?authSource=admin
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET:-jwt-secret-key}
+      - AUTH_SERVICE_URL=http://auth-service:5001
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+# ========================================
+# VOLUMES
+# ========================================
+volumes:
+  mongodb_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# ========================================
+# NETWORKS
+# ========================================
+networks:
+  default:
+    name: fastfood-network
