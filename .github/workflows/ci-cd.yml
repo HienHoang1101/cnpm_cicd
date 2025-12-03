@@ -32,10 +32,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          # Bỏ cache vì không có package-lock.json
 
-      - name: 📝 Install ESLint globally
-        run: npm install -g eslint
+      - name: 📝 Install ESLint and Prettier
+        run: |
+          npm install -g eslint prettier
+          npm install --save-dev eslint prettier
 
       - name: 🔍 Run ESLint on all services
         run: |
@@ -49,6 +50,17 @@ jobs:
               npx eslint . --ext .js,.jsx,.ts,.tsx --format json --output-file ../reports/eslint-$service.json 2>/dev/null || echo '{"results":[]}' > ../reports/eslint-$service.json
               cd ..
             fi
+          done
+        continue-on-error: true
+
+      - name: 💅 Check Prettier formatting
+        run: |
+          echo "# Prettier Check Report" > reports/prettier-report.md
+          for service in auth order restaurant payment-service notification-service admin-service food-delivery-server; do
+            echo "## $service" >> reports/prettier-report.md
+            cd $service
+            npx prettier --check "**/*.js" 2>&1 | head -20 >> ../reports/prettier-report.md || echo "- Some files need formatting" >> ../reports/prettier-report.md
+            cd ..
           done
         continue-on-error: true
 
@@ -433,6 +445,51 @@ jobs:
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:javascript"
+
+  # ========================================
+  # JOB 6c: SonarCloud Analysis
+  # ========================================
+  sonarcloud:
+    name: 🔍 SonarCloud Code Analysis
+    runs-on: ubuntu-latest
+    needs: [lint, unit-tests]
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better analysis
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 📥 Download Test Coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-reports
+          path: coverage-reports/
+        continue-on-error: true
+
+      - name: 🔍 SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=${{ github.repository_owner }}_${{ github.event.repository.name }}
+            -Dsonar.organization=${{ github.repository_owner }}
+            -Dsonar.sources=auth,order,restaurant,payment-service,notification-service,admin-service
+            -Dsonar.exclusions=**/node_modules/**,**/coverage/**,**/dist/**,**/*.test.js,**/*.spec.js
+            -Dsonar.javascript.lcov.reportPaths=coverage-reports/auth/lcov.info,coverage-reports/order/lcov.info,coverage-reports/restaurant/lcov.info
+            -Dsonar.qualitygate.wait=true
+
+      - name: 📊 SonarCloud Quality Gate
+        run: |
+          echo "## 🔍 SonarCloud Analysis Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "View detailed results in [SonarCloud Dashboard](https://sonarcloud.io/dashboard?id=${{ github.repository_owner }}_${{ github.event.repository.name }})" >> $GITHUB_STEP_SUMMARY
 
   # ========================================
   # JOB 7: DEPLOY TO STAGING
