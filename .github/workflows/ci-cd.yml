@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main, develop]
 
+# Permissions cho GITHUB_TOKEN
+permissions:
+  contents: read
+  packages: write
+  security-events: write
+
 env:
   NODE_VERSION: '18'
   DOCKER_REGISTRY: ghcr.io
