@@ -1,0 +1,1645 @@
+openapi: 3.0.3
+info:
+  title: FastFood Delivery API
+  description: |
+    # FastFood Delivery Microservices API Documentation
+    
+    This is the comprehensive API documentation for the FastFood Delivery platform.
+    
+    ## Architecture
+    The platform consists of the following microservices:
+    - **Auth Service** (Port 5001) - Authentication and user management
+    - **Order Service** (Port 5002) - Order and cart management
+    - **Restaurant Service** (Port 5003) - Restaurant and menu management
+    - **Delivery Service** (Port 5004) - Delivery tracking and assignment
+    - **Payment Service** (Port 5005) - Payment processing with Stripe
+    - **Notification Service** (Port 5006) - Email, SMS, and push notifications
+    - **Admin Service** (Port 5008) - Platform administration and settlements
+    
+    ## Authentication
+    Most endpoints require JWT Bearer token authentication.
+    Obtain a token by calling `POST /api/auth/login`.
+    
+    ## Rate Limiting
+    API calls are rate limited to 100 requests per minute per user.
+    
+  version: 1.0.0
+  contact:
+    name: FastFood Delivery Team
+    email: support@fastfood-delivery.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:5001
+    description: Auth Service (Local)
+  - url: http://localhost:5002
+    description: Order Service (Local)
+  - url: http://localhost:5003
+    description: Restaurant Service (Local)
+  - url: http://localhost:5005
+    description: Payment Service (Local)
+  - url: http://localhost:5006
+    description: Notification Service (Local)
+  - url: http://localhost:5008
+    description: Admin Service (Local)
+
+tags:
+  - name: Auth
+    description: Authentication and authorization endpoints
+  - name: Users
+    description: User management endpoints
+  - name: Orders
+    description: Order management endpoints
+  - name: Cart
+    description: Shopping cart endpoints
+  - name: Restaurants
+    description: Restaurant and menu endpoints
+  - name: Payments
+    description: Payment processing endpoints
+  - name: Notifications
+    description: Notification management endpoints
+  - name: Admin
+    description: Admin and settlement endpoints
+
+paths:
+  # ==========================================
+  # AUTH SERVICE ENDPOINTS
+  # ==========================================
+  /api/auth/register:
+    post:
+      tags:
+        - Auth
+      summary: Register a new user
+      description: |
+        Register a new user account. Available roles:
+        - `customer` - Regular customer (auto-approved)
+        - `restaurant` - Restaurant owner (requires admin approval)
+        - `delivery` - Delivery person (requires admin approval)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            examples:
+              customer:
+                summary: Register as customer
+                value:
+                  email: customer@example.com
+                  password: SecurePass123!
+                  name: John Doe
+                  phone: "1234567890"
+                  role: customer
+              restaurant:
+                summary: Register as restaurant owner
+                value:
+                  email: restaurant@example.com
+                  password: SecurePass123!
+                  name: Restaurant Owner
+                  phone: "0987654321"
+                  role: restaurant
+                  nic: "123456789V"
+                  nicImage: "https://example.com/nic.jpg"
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Bad request - validation error or duplicate email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Login user
+      description: Authenticate user and receive JWT tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/refresh-token:
+    post:
+      tags:
+        - Auth
+      summary: Refresh access token
+      description: Get a new access token using refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+                  description: The refresh token from login
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  token:
+                    type: string
+        '401':
+          description: Invalid or expired refresh token
+
+  /api/auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: Logout user
+      description: Invalidate current session
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+
+  /api/auth/me:
+    get:
+      tags:
+        - Auth
+      summary: Get current user
+      description: Get the currently authenticated user's profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /api/auth/validate-token:
+    get:
+      tags:
+        - Auth
+      summary: Validate JWT token
+      description: Validate a JWT token (for inter-service communication)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Token is valid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Invalid token
+
+  /api/auth/forgot-password:
+    post:
+      tags:
+        - Auth
+      summary: Request password reset
+      description: Send password reset email to user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Password reset email sent
+
+  /api/auth/reset-password/{token}:
+    post:
+      tags:
+        - Auth
+      summary: Reset password
+      description: Reset password using token from email
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - password
+              properties:
+                password:
+                  type: string
+                  minLength: 8
+      responses:
+        '200':
+          description: Password reset successful
+
+  # ==========================================
+  # USER MANAGEMENT ENDPOINTS
+  # ==========================================
+  /api/users:
+    get:
+      tags:
+        - Users
+      summary: Get all users (Admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [customer, restaurant, delivery, admin]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive, pending_approval, suspended]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+  /api/users/me:
+    get:
+      tags:
+        - Users
+      summary: Get current user profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+    patch:
+      tags:
+        - Users
+      summary: Update current user profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                phone:
+                  type: string
+                avatar:
+                  type: string
+      responses:
+        '200':
+          description: Profile updated
+
+  /api/users/me/addresses:
+    get:
+      tags:
+        - Users
+      summary: Get user addresses
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of addresses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Address'
+
+    post:
+      tags:
+        - Users
+      summary: Add new address
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressInput'
+      responses:
+        '201':
+          description: Address added
+
+  /api/users/{id}/approve:
+    put:
+      tags:
+        - Users
+      summary: Approve pending user (Admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User approved
+
+  # ==========================================
+  # ORDER ENDPOINTS
+  # ==========================================
+  /api/orders:
+    post:
+      tags:
+        - Orders
+      summary: Create new order
+      description: Create a new order from cart items
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequest'
+      responses:
+        '201':
+          description: Order created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          description: Cart is empty or validation error
+
+    get:
+      tags:
+        - Orders
+      summary: Get user orders
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PLACED, CONFIRMED, PREPARING, READY, PICKED_UP, DELIVERED, CANCELLED]
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of orders
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orders:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Order'
+
+  /api/orders/{id}:
+    get:
+      tags:
+        - Orders
+      summary: Get order by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Order details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '404':
+          description: Order not found
+
+    delete:
+      tags:
+        - Orders
+      summary: Cancel/Delete order
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Order cancelled
+
+  /api/orders/{id}/status:
+    patch:
+      tags:
+        - Orders
+      summary: Update order status
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [PLACED, CONFIRMED, PREPARING, READY, PICKED_UP, DELIVERED, CANCELLED]
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Status updated
+
+  /api/orders/{id}/tracking:
+    get:
+      tags:
+        - Orders
+      summary: Get order tracking info
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tracking information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderTracking'
+
+  /api/orders/admin/all:
+    get:
+      tags:
+        - Orders
+      summary: Get all orders (Admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: All orders
+
+  # ==========================================
+  # CART ENDPOINTS
+  # ==========================================
+  /api/cart:
+    get:
+      tags:
+        - Cart
+      summary: Get cart items
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Cart items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CartItem'
+
+    post:
+      tags:
+        - Cart
+      summary: Add item to cart
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartItemInput'
+      responses:
+        '201':
+          description: Item added to cart
+
+  /api/cart/{id}:
+    put:
+      tags:
+        - Cart
+      summary: Update cart item
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                quantity:
+                  type: integer
+                  minimum: 1
+      responses:
+        '200':
+          description: Cart item updated
+
+    delete:
+      tags:
+        - Cart
+      summary: Remove item from cart
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Item removed
+
+  /api/cart/reset:
+    post:
+      tags:
+        - Cart
+      summary: Clear entire cart
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Cart cleared
+
+  # ==========================================
+  # RESTAURANT ENDPOINTS
+  # ==========================================
+  /api/restaurants:
+    get:
+      tags:
+        - Restaurants
+      summary: Get all restaurants
+      parameters:
+        - name: cuisine
+          in: query
+          schema:
+            type: string
+        - name: isOpen
+          in: query
+          schema:
+            type: boolean
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [rating, distance, deliveryTime]
+      responses:
+        '200':
+          description: List of restaurants
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Restaurant'
+
+  /api/restaurants/add:
+    post:
+      tags:
+        - Restaurants
+      summary: Add new restaurant
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RestaurantInput'
+      responses:
+        '201':
+          description: Restaurant created
+
+  /api/restaurants/{id}:
+    get:
+      tags:
+        - Restaurants
+      summary: Get restaurant by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Restaurant details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Restaurant'
+
+    put:
+      tags:
+        - Restaurants
+      summary: Update restaurant
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RestaurantInput'
+      responses:
+        '200':
+          description: Restaurant updated
+
+    delete:
+      tags:
+        - Restaurants
+      summary: Delete restaurant
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Restaurant deleted
+
+  /api/restaurants/{id}/dishes:
+    get:
+      tags:
+        - Restaurants
+      summary: Get restaurant menu items
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Menu items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Dish'
+
+  /api/restaurants/search:
+    get:
+      tags:
+        - Restaurants
+      summary: Search restaurants
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Search query
+        - name: cuisine
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Search results
+
+  /api/restaurants/nearby:
+    get:
+      tags:
+        - Restaurants
+      summary: Get nearby restaurants
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+        - name: lng
+          in: query
+          required: true
+          schema:
+            type: number
+        - name: radius
+          in: query
+          schema:
+            type: number
+            default: 5000
+          description: Radius in meters
+      responses:
+        '200':
+          description: Nearby restaurants
+
+  # ==========================================
+  # PAYMENT ENDPOINTS
+  # ==========================================
+  /api/payments/initiate:
+    post:
+      tags:
+        - Payments
+      summary: Initiate payment
+      description: Create a Stripe payment intent
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - orderId
+                - amount
+              properties:
+                orderId:
+                  type: string
+                amount:
+                  type: number
+                  minimum: 0.50
+                currency:
+                  type: string
+                  default: usd
+      responses:
+        '200':
+          description: Payment intent created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  clientSecret:
+                    type: string
+                  paymentIntentId:
+                    type: string
+
+  /api/payments/initiateCOD:
+    post:
+      tags:
+        - Payments
+      summary: Create COD payment
+      description: Create Cash on Delivery payment record
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - orderId
+                - amount
+              properties:
+                orderId:
+                  type: string
+                amount:
+                  type: number
+      responses:
+        '200':
+          description: COD payment created
+
+  /api/payments/webhook:
+    post:
+      tags:
+        - Payments
+      summary: Stripe webhook
+      description: Handle Stripe webhook events (Stripe signature verification required)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Webhook processed
+
+  # ==========================================
+  # NOTIFICATION ENDPOINTS
+  # ==========================================
+  /api/notifications:
+    get:
+      tags:
+        - Notifications
+      summary: Get all notifications (Admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [read, unread]
+      responses:
+        '200':
+          description: List of notifications
+
+    post:
+      tags:
+        - Notifications
+      summary: Create notification (Admin only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationInput'
+      responses:
+        '201':
+          description: Notification created
+
+  /api/notifications/email:
+    post:
+      tags:
+        - Notifications
+      summary: Send email notification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - to
+                - subject
+                - body
+              properties:
+                to:
+                  type: string
+                  format: email
+                subject:
+                  type: string
+                body:
+                  type: string
+      responses:
+        '200':
+          description: Email sent
+
+  /api/notifications/sms:
+    post:
+      tags:
+        - Notifications
+      summary: Send SMS notification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - to
+                - message
+              properties:
+                to:
+                  type: string
+                  description: Phone number with country code
+                message:
+                  type: string
+                  maxLength: 160
+      responses:
+        '200':
+          description: SMS sent
+
+  /api/notifications/{id}/read:
+    put:
+      tags:
+        - Notifications
+      summary: Mark notification as read
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Notification marked as read
+
+  /api/notifications/read-all:
+    put:
+      tags:
+        - Notifications
+      summary: Mark all notifications as read
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: All notifications marked as read
+
+  # ==========================================
+  # ADMIN/SETTLEMENT ENDPOINTS
+  # ==========================================
+  /api/settlements:
+    get:
+      tags:
+        - Admin
+      summary: Get all settlements
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, PAID, FAILED]
+        - name: restaurantId
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of settlements
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  settlements:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Settlement'
+
+  /api/settlements/add-order:
+    post:
+      tags:
+        - Admin
+      summary: Add order to settlement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - restaurantId
+                - orderId
+                - subtotal
+                - platformFee
+                - weekEnding
+              properties:
+                restaurantId:
+                  type: string
+                restaurantName:
+                  type: string
+                orderId:
+                  type: string
+                subtotal:
+                  type: number
+                platformFee:
+                  type: number
+                weekEnding:
+                  type: string
+                  format: date
+      responses:
+        '200':
+          description: Order added to settlement
+
+  /api/settlements/process-weekly:
+    post:
+      tags:
+        - Admin
+      summary: Process weekly settlements
+      description: Process all pending settlements for the previous week
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Settlements processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  processed:
+                    type: integer
+                  successful:
+                    type: integer
+                  failed:
+                    type: integer
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token from login endpoint
+
+  schemas:
+    # ==========================================
+    # REQUEST SCHEMAS
+    # ==========================================
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+        - name
+        - phone
+        - role
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+          description: Must contain uppercase, lowercase, number
+        name:
+          type: string
+        phone:
+          type: string
+        role:
+          type: string
+          enum: [customer, restaurant, delivery]
+        nic:
+          type: string
+          description: Required for restaurant and delivery roles
+        nicImage:
+          type: string
+          description: URL to NIC image (required for restaurant/delivery)
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    CreateOrderRequest:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum: [DELIVERY, PICKUP]
+        deliveryAddress:
+          $ref: '#/components/schemas/AddressInput'
+        notes:
+          type: string
+        paymentMethod:
+          type: string
+          enum: [CARD, CASH, WALLET]
+          default: CARD
+
+    CartItemInput:
+      type: object
+      required:
+        - restaurantId
+        - itemId
+        - name
+        - itemPrice
+        - quantity
+      properties:
+        restaurantId:
+          type: string
+        itemId:
+          type: string
+        name:
+          type: string
+        itemPrice:
+          type: number
+        quantity:
+          type: integer
+          minimum: 1
+        options:
+          type: array
+          items:
+            type: object
+
+    RestaurantInput:
+      type: object
+      required:
+        - name
+        - address
+        - cuisine
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        address:
+          type: object
+          properties:
+            street:
+              type: string
+            city:
+              type: string
+            coordinates:
+              type: object
+              properties:
+                lat:
+                  type: number
+                lng:
+                  type: number
+        cuisine:
+          type: array
+          items:
+            type: string
+        phone:
+          type: string
+        openingHours:
+          type: object
+
+    AddressInput:
+      type: object
+      required:
+        - street
+        - city
+      properties:
+        label:
+          type: string
+          enum: [home, work, other]
+        street:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        zipCode:
+          type: string
+        coordinates:
+          type: object
+          properties:
+            lat:
+              type: number
+            lng:
+              type: number
+
+    NotificationInput:
+      type: object
+      required:
+        - type
+        - recipientType
+        - relatedEntity
+        - title
+        - message
+      properties:
+        type:
+          type: string
+        recipientType:
+          type: string
+          enum: [customer, restaurant, delivery, system]
+        recipientId:
+          type: string
+        relatedEntity:
+          type: object
+          properties:
+            id:
+              type: string
+            type:
+              type: string
+        title:
+          type: string
+        message:
+          type: string
+        metadata:
+          type: object
+
+    # ==========================================
+    # RESPONSE SCHEMAS
+    # ==========================================
+    AuthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        token:
+          type: string
+          description: JWT access token
+        refreshToken:
+          type: string
+          description: JWT refresh token
+        user:
+          $ref: '#/components/schemas/User'
+
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+        phone:
+          type: string
+        role:
+          type: string
+          enum: [customer, restaurant, delivery, admin]
+        status:
+          type: string
+          enum: [active, inactive, pending_approval, suspended]
+        avatar:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    Order:
+      type: object
+      properties:
+        _id:
+          type: string
+        orderId:
+          type: string
+          example: "ORD-1234567890"
+        customerId:
+          type: string
+        customerName:
+          type: string
+        type:
+          type: string
+          enum: [DELIVERY, PICKUP]
+        status:
+          type: string
+          enum: [PLACED, CONFIRMED, PREPARING, READY, PICKED_UP, DELIVERED, CANCELLED]
+        deliveryAddress:
+          $ref: '#/components/schemas/Address'
+        restaurantOrder:
+          type: object
+          properties:
+            restaurantId:
+              type: string
+            restaurantName:
+              type: string
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/OrderItem'
+            subtotal:
+              type: number
+            tax:
+              type: number
+            deliveryFee:
+              type: number
+        totalAmount:
+          type: number
+        paymentMethod:
+          type: string
+        paymentStatus:
+          type: string
+          enum: [PENDING, PAID, FAILED, REFUNDED]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    OrderItem:
+      type: object
+      properties:
+        itemId:
+          type: string
+        name:
+          type: string
+        price:
+          type: number
+        quantity:
+          type: integer
+
+    OrderTracking:
+      type: object
+      properties:
+        orderId:
+          type: string
+        status:
+          type: string
+        statusHistory:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                type: string
+              timestamp:
+                type: string
+                format: date-time
+              notes:
+                type: string
+        deliveryPerson:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            phone:
+              type: string
+            location:
+              type: object
+              properties:
+                lat:
+                  type: number
+                lng:
+                  type: number
+        estimatedDelivery:
+          type: string
+          format: date-time
+
+    CartItem:
+      type: object
+      properties:
+        _id:
+          type: string
+        customerId:
+          type: string
+        restaurantId:
+          type: string
+        itemId:
+          type: string
+        name:
+          type: string
+        itemPrice:
+          type: number
+        quantity:
+          type: integer
+        totalPrice:
+          type: number
+
+    Restaurant:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        ownerId:
+          type: string
+        address:
+          type: object
+        cuisine:
+          type: array
+          items:
+            type: string
+        rating:
+          type: number
+        totalReviews:
+          type: integer
+        isOpen:
+          type: boolean
+        deliveryTime:
+          type: string
+          example: "30-45 min"
+        minimumOrder:
+          type: number
+        deliveryFee:
+          type: number
+        image:
+          type: string
+        status:
+          type: string
+          enum: [pending, approved, rejected, suspended]
+
+    Dish:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        category:
+          type: string
+        image:
+          type: string
+        isAvailable:
+          type: boolean
+        options:
+          type: array
+          items:
+            type: object
+
+    Address:
+      type: object
+      properties:
+        _id:
+          type: string
+        label:
+          type: string
+        street:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        zipCode:
+          type: string
+        coordinates:
+          type: object
+          properties:
+            lat:
+              type: number
+            lng:
+              type: number
+        isDefault:
+          type: boolean
+
+    Settlement:
+      type: object
+      properties:
+        _id:
+          type: string
+        restaurantId:
+          type: string
+        restaurantName:
+          type: string
+        weekEnding:
+          type: string
+          format: date
+        totalOrders:
+          type: integer
+        orderSubtotal:
+          type: number
+        platformFee:
+          type: number
+        amountDue:
+          type: number
+        status:
+          type: string
+          enum: [PENDING, PAID, FAILED]
+        paymentDate:
+          type: string
+          format: date-time
+        transactionId:
+          type: string
+        orderIds:
+          type: array
+          items:
+            type: string
+
+    Pagination:
+      type: object
+      properties:
+        currentPage:
+          type: integer
+        totalPages:
+          type: integer
+        totalItems:
+          type: integer
+        itemsPerPage:
+          type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+        error:
+          type: string
+        details:
+          type: object
+
+security:
+  - bearerAuth: []

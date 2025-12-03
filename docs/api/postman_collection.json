@@ -1,0 +1,1006 @@
+{
+  "info": {
+    "_postman_id": "fastfood-delivery-api",
+    "name": "FastFood Delivery API",
+    "description": "Complete API collection for FastFood Delivery microservices platform",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost",
+      "type": "string"
+    },
+    {
+      "key": "authPort",
+      "value": "5001",
+      "type": "string"
+    },
+    {
+      "key": "orderPort",
+      "value": "5002",
+      "type": "string"
+    },
+    {
+      "key": "restaurantPort",
+      "value": "5003",
+      "type": "string"
+    },
+    {
+      "key": "deliveryPort",
+      "value": "5004",
+      "type": "string"
+    },
+    {
+      "key": "paymentPort",
+      "value": "5005",
+      "type": "string"
+    },
+    {
+      "key": "notificationPort",
+      "value": "5006",
+      "type": "string"
+    },
+    {
+      "key": "adminPort",
+      "value": "5008",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "🔐 Authentication",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.token) {",
+                  "        pm.collectionVariables.set('accessToken', response.token);",
+                  "    }",
+                  "    if (response.refreshToken) {",
+                  "        pm.collectionVariables.set('refreshToken', response.refreshToken);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"+84901234567\",\n  \"role\": \"customer\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}:{{authPort}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "port": "{{authPort}}",
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.token) {",
+                  "        pm.collectionVariables.set('accessToken', response.token);",
+                  "    }",
+                  "    if (response.refreshToken) {",
+                  "        pm.collectionVariables.set('refreshToken', response.refreshToken);",
+                  "    }",
+                  "    pm.test('Login successful', function() {",
+                  "        pm.expect(response.success).to.be.true;",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}:{{authPort}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "port": "{{authPort}}",
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.token) {",
+                  "        pm.collectionVariables.set('accessToken', response.token);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}:{{authPort}}/api/auth/refresh-token",
+              "host": ["{{baseUrl}}"],
+              "port": "{{authPort}}",
+              "path": ["api", "auth", "refresh-token"]
+            }
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}:{{authPort}}/api/auth/me",
+              "host": ["{{baseUrl}}"],
+              "port": "{{authPort}}",
+              "path": ["api", "auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "Validate Token",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}:{{authPort}}/api/auth/validate-token",
+              "host": ["{{baseUrl}}"],
+              "port": "{{authPort}}",
+              "path": ["api", "auth", "validate-token"]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}:{{authPort}}/api/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "port": "{{authPort}}",
+              "path": ["api", "auth", "logout"]
+            }
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}:{{authPort}}/api/auth/forgot-password",
+              "host": ["{{baseUrl}}"],
+              "port": "{{authPort}}",
+              "path": ["api", "auth", "forgot-password"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "👤 User Management",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}:{{authPort}}/api/users/me",
+              "host": ["{{baseUrl}}"],
+              "port": "{{authPort}}",
+              "path": ["api", "users", "me"]
+            }
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Name\",\n  \"phone\": \"+84901234567\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}:{{authPort}}/api/users/me",
+              "host": ["{{baseUrl}}"],
+              "port": "{{authPort}}",
+              "path": ["api", "users", "me"]
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"password123\",\n  \"newPassword\": \"newPassword456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}:{{authPort}}/api/users/me/password",
+              "host": ["{{baseUrl}}"],
+              "port": "{{authPort}}",
+              "path": ["api", "users", "me", "password"]
+            }
+          }
+        },
+        {
+          "name": "Get Addresses",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}:{{authPort}}/api/users/me/addresses",
+              "host": ["{{baseUrl}}"],
+              "port": "{{authPort}}",
+              "path": ["api", "users", "me", "addresses"]
+            }
+          }
+        },
+        {
+          "name": "Add Address",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"Home\",\n  \"street\": \"123 Main Street\",\n  \"city\": \"Ho Chi Minh City\",\n  \"state\": \"HCM\",\n  \"zipCode\": \"70000\",\n  \"coordinates\": {\n    \"lat\": 10.7769,\n    \"lng\": 106.7009\n  },\n  \"isDefault\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}:{{authPort}}/api/users/me/addresses",
+              "host": ["{{baseUrl}}"],
+              "port": "{{authPort}}",
+              "path": ["api", "users", "me", "addresses"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🍕 Restaurants",
+      "item": [
+        {
+          "name": "List Restaurants",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}:{{restaurantPort}}/api/restaurants?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "port": "{{restaurantPort}}",
+              "path": ["api", "restaurants"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search Restaurants",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}:{{restaurantPort}}/api/restaurants/search?q=pizza",
+              "host": ["{{baseUrl}}"],
+              "port": "{{restaurantPort}}",
+              "path": ["api", "restaurants", "search"],
+              "query": [
+                { "key": "q", "value": "pizza" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Nearby Restaurants",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}:{{restaurantPort}}/api/restaurants/nearby?lat=10.7769&lng=106.7009&radius=5",
+              "host": ["{{baseUrl}}"],
+              "port": "{{restaurantPort}}",
+              "path": ["api", "restaurants", "nearby"],
+              "query": [
+                { "key": "lat", "value": "10.7769" },
+                { "key": "lng", "value": "106.7009" },
+                { "key": "radius", "value": "5" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Restaurant",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}:{{restaurantPort}}/api/restaurants/:restaurantId",
+              "host": ["{{baseUrl}}"],
+              "port": "{{restaurantPort}}",
+              "path": ["api", "restaurants", ":restaurantId"],
+              "variable": [
+                { "key": "restaurantId", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Restaurant Dishes",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}:{{restaurantPort}}/api/restaurants/:restaurantId/dishes",
+              "host": ["{{baseUrl}}"],
+              "port": "{{restaurantPort}}",
+              "path": ["api", "restaurants", ":restaurantId", "dishes"],
+              "variable": [
+                { "key": "restaurantId", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Categories",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}:{{restaurantPort}}/api/categories",
+              "host": ["{{baseUrl}}"],
+              "port": "{{restaurantPort}}",
+              "path": ["api", "categories"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🛒 Cart",
+      "item": [
+        {
+          "name": "Get Cart",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}:{{orderPort}}/api/cart",
+              "host": ["{{baseUrl}}"],
+              "port": "{{orderPort}}",
+              "path": ["api", "cart"]
+            }
+          }
+        },
+        {
+          "name": "Add Item to Cart",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"restaurantId\": \"restaurant_id\",\n  \"itemId\": \"dish_id\",\n  \"name\": \"Margherita Pizza\",\n  \"itemPrice\": 150000,\n  \"quantity\": 2\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}:{{orderPort}}/api/cart/items",
+              "host": ["{{baseUrl}}"],
+              "port": "{{orderPort}}",
+              "path": ["api", "cart", "items"]
+            }
+          }
+        },
+        {
+          "name": "Update Cart Item",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 3\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}:{{orderPort}}/api/cart/items/:itemId",
+              "host": ["{{baseUrl}}"],
+              "port": "{{orderPort}}",
+              "path": ["api", "cart", "items", ":itemId"],
+              "variable": [
+                { "key": "itemId", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Remove Cart Item",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}:{{orderPort}}/api/cart/items/:itemId",
+              "host": ["{{baseUrl}}"],
+              "port": "{{orderPort}}",
+              "path": ["api", "cart", "items", ":itemId"],
+              "variable": [
+                { "key": "itemId", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Clear Cart",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}:{{orderPort}}/api/cart",
+              "host": ["{{baseUrl}}"],
+              "port": "{{orderPort}}",
+              "path": ["api", "cart"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📦 Orders",
+      "item": [
+        {
+          "name": "Create Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"restaurantId\": \"restaurant_id\",\n  \"items\": [\n    {\n      \"itemId\": \"dish_id\",\n      \"name\": \"Margherita Pizza\",\n      \"price\": 150000,\n      \"quantity\": 2\n    }\n  ],\n  \"deliveryAddress\": {\n    \"street\": \"123 Main Street\",\n    \"city\": \"Ho Chi Minh City\",\n    \"coordinates\": {\n      \"lat\": 10.7769,\n      \"lng\": 106.7009\n    }\n  },\n  \"paymentMethod\": \"cod\",\n  \"notes\": \"Extra napkins please\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}:{{orderPort}}/api/orders",
+              "host": ["{{baseUrl}}"],
+              "port": "{{orderPort}}",
+              "path": ["api", "orders"]
+            }
+          }
+        },
+        {
+          "name": "Get Orders",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}:{{orderPort}}/api/orders?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "port": "{{orderPort}}",
+              "path": ["api", "orders"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Order by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}:{{orderPort}}/api/orders/:orderId",
+              "host": ["{{baseUrl}}"],
+              "port": "{{orderPort}}",
+              "path": ["api", "orders", ":orderId"],
+              "variable": [
+                { "key": "orderId", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Order Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"confirmed\",\n  \"note\": \"Order confirmed by restaurant\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}:{{orderPort}}/api/orders/:orderId/status",
+              "host": ["{{baseUrl}}"],
+              "port": "{{orderPort}}",
+              "path": ["api", "orders", ":orderId", "status"],
+              "variable": [
+                { "key": "orderId", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Cancel Order",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Changed my mind\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}:{{orderPort}}/api/orders/:orderId/cancel",
+              "host": ["{{baseUrl}}"],
+              "port": "{{orderPort}}",
+              "path": ["api", "orders", ":orderId", "cancel"],
+              "variable": [
+                { "key": "orderId", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Order Tracking",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}:{{orderPort}}/api/orders/:orderId/tracking",
+              "host": ["{{baseUrl}}"],
+              "port": "{{orderPort}}",
+              "path": ["api", "orders", ":orderId", "tracking"],
+              "variable": [
+                { "key": "orderId", "value": "" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "💳 Payments",
+      "item": [
+        {
+          "name": "Initiate Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"order_id\",\n  \"amount\": 350000,\n  \"paymentMethod\": \"momo\",\n  \"returnUrl\": \"https://example.com/payment/callback\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}:{{paymentPort}}/api/payments/initiate",
+              "host": ["{{baseUrl}}"],
+              "port": "{{paymentPort}}",
+              "path": ["api", "payments", "initiate"]
+            }
+          }
+        },
+        {
+          "name": "Initiate COD Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": \"order_id\",\n  \"amount\": 350000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}:{{paymentPort}}/api/payments/initiate-cod",
+              "host": ["{{baseUrl}}"],
+              "port": "{{paymentPort}}",
+              "path": ["api", "payments", "initiate-cod"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🚗 Delivery",
+      "item": [
+        {
+          "name": "Get Available Orders",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}:{{deliveryPort}}/api/delivery/available-orders?lat=10.7769&lng=106.7009",
+              "host": ["{{baseUrl}}"],
+              "port": "{{deliveryPort}}",
+              "path": ["api", "delivery", "available-orders"],
+              "query": [
+                { "key": "lat", "value": "10.7769" },
+                { "key": "lng", "value": "106.7009" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Accept Order",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}:{{deliveryPort}}/api/delivery/orders/:orderId/accept",
+              "host": ["{{baseUrl}}"],
+              "port": "{{deliveryPort}}",
+              "path": ["api", "delivery", "orders", ":orderId", "accept"],
+              "variable": [
+                { "key": "orderId", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark Picked Up",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}:{{deliveryPort}}/api/delivery/orders/:orderId/pickup",
+              "host": ["{{baseUrl}}"],
+              "port": "{{deliveryPort}}",
+              "path": ["api", "delivery", "orders", ":orderId", "pickup"],
+              "variable": [
+                { "key": "orderId", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark Delivered",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deliveryPhoto\": \"base64_encoded_image\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}:{{deliveryPort}}/api/delivery/orders/:orderId/deliver",
+              "host": ["{{baseUrl}}"],
+              "port": "{{deliveryPort}}",
+              "path": ["api", "delivery", "orders", ":orderId", "deliver"],
+              "variable": [
+                { "key": "orderId", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Location",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lat\": 10.7769,\n  \"lng\": 106.7009,\n  \"heading\": 45,\n  \"speed\": 30\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}:{{deliveryPort}}/api/delivery/location",
+              "host": ["{{baseUrl}}"],
+              "port": "{{deliveryPort}}",
+              "path": ["api", "delivery", "location"]
+            }
+          }
+        },
+        {
+          "name": "Get Earnings",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}:{{deliveryPort}}/api/delivery/earnings?period=today",
+              "host": ["{{baseUrl}}"],
+              "port": "{{deliveryPort}}",
+              "path": ["api", "delivery", "earnings"],
+              "query": [
+                { "key": "period", "value": "today" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔔 Notifications",
+      "item": [
+        {
+          "name": "Get Notifications",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}:{{notificationPort}}/api/notifications?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "port": "{{notificationPort}}",
+              "path": ["api", "notifications"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark as Read",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}:{{notificationPort}}/api/notifications/:notificationId/read",
+              "host": ["{{baseUrl}}"],
+              "port": "{{notificationPort}}",
+              "path": ["api", "notifications", ":notificationId", "read"],
+              "variable": [
+                { "key": "notificationId", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark All as Read",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "{{baseUrl}}:{{notificationPort}}/api/notifications/read-all",
+              "host": ["{{baseUrl}}"],
+              "port": "{{notificationPort}}",
+              "path": ["api", "notifications", "read-all"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "⚙️ Admin",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}:{{authPort}}/api/users?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "port": "{{authPort}}",
+              "path": ["api", "users"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get All Orders (Admin)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}:{{orderPort}}/api/orders/admin/all",
+              "host": ["{{baseUrl}}"],
+              "port": "{{orderPort}}",
+              "path": ["api", "orders", "admin", "all"]
+            }
+          }
+        },
+        {
+          "name": "Get Settlements",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}:{{adminPort}}/api/admin/settlements",
+              "host": ["{{baseUrl}}"],
+              "port": "{{adminPort}}",
+              "path": ["api", "admin", "settlements"]
+            }
+          }
+        },
+        {
+          "name": "Process Weekly Settlements",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}:{{adminPort}}/api/admin/settlements/process-weekly",
+              "host": ["{{baseUrl}}"],
+              "port": "{{adminPort}}",
+              "path": ["api", "admin", "settlements", "process-weekly"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🏥 Health Checks",
+      "item": [
+        {
+          "name": "Auth Service Health",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}:{{authPort}}/health",
+              "host": ["{{baseUrl}}"],
+              "port": "{{authPort}}",
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "Order Service Health",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}:{{orderPort}}/health",
+              "host": ["{{baseUrl}}"],
+              "port": "{{orderPort}}",
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "Restaurant Service Health",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}:{{restaurantPort}}/health",
+              "host": ["{{baseUrl}}"],
+              "port": "{{restaurantPort}}",
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "Payment Service Health",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}:{{paymentPort}}/health",
+              "host": ["{{baseUrl}}"],
+              "port": "{{paymentPort}}",
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "Notification Service Health",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}:{{notificationPort}}/health",
+              "host": ["{{baseUrl}}"],
+              "port": "{{notificationPort}}",
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "Admin Service Health",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}:{{adminPort}}/health",
+              "host": ["{{baseUrl}}"],
+              "port": "{{adminPort}}",
+              "path": ["health"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

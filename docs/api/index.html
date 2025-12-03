@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FastFood Delivery API Documentation</title>
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui.css">
+  <link rel="icon" type="image/png" href="https://petstore.swagger.io/favicon-32x32.png">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    .swagger-ui .topbar {
+      display: none;
+    }
+    .swagger-ui .info {
+      margin: 30px 0;
+    }
+    .swagger-ui .info .title {
+      color: #ff6b35;
+    }
+    .custom-header {
+      background: linear-gradient(135deg, #ff6b35 0%, #f7c59f 100%);
+      color: white;
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .custom-header h1 {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    .custom-header .logo {
+      font-size: 2em;
+    }
+    .custom-header .links a {
+      color: white;
+      margin-left: 20px;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .custom-header .links a:hover {
+      text-decoration: underline;
+    }
+    .environment-selector {
+      background: #f5f5f5;
+      padding: 15px 40px;
+      border-bottom: 1px solid #ddd;
+    }
+    .environment-selector select {
+      padding: 8px 15px;
+      font-size: 14px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="custom-header">
+    <div style="display: flex; align-items: center;">
+      <span class="logo">🍔</span>
+      <h1 style="margin-left: 15px;">FastFood Delivery API</h1>
+    </div>
+    <div class="links">
+      <a href="https://github.com/HienHoang1101/cnpm_cicd" target="_blank">GitHub</a>
+      <a href="/health" target="_blank">Health Check</a>
+    </div>
+  </div>
+  
+  <div class="environment-selector">
+    <label>
+      <strong>Environment:</strong>
+      <select id="server-select" onchange="changeServer(this.value)">
+        <option value="local">Local Development</option>
+        <option value="staging">Staging</option>
+        <option value="production">Production</option>
+      </select>
+    </label>
+  </div>
+
+  <div id="swagger-ui"></div>
+
+  <script src="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui-bundle.js"></script>
+  <script src="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui-standalone-preset.js"></script>
+  <script>
+    window.onload = function() {
+      window.ui = SwaggerUIBundle({
+        url: "./openapi.yaml",
+        dom_id: '#swagger-ui',
+        deepLinking: true,
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIStandalonePreset
+        ],
+        plugins: [
+          SwaggerUIBundle.plugins.DownloadUrl
+        ],
+        layout: "StandaloneLayout",
+        docExpansion: 'list',
+        filter: true,
+        showExtensions: true,
+        showCommonExtensions: true,
+        tryItOutEnabled: true,
+        requestInterceptor: (req) => {
+          // Add authorization header if token is stored
+          const token = localStorage.getItem('swagger_token');
+          if (token) {
+            req.headers['Authorization'] = `Bearer ${token}`;
+          }
+          return req;
+        }
+      });
+    };
+
+    function changeServer(env) {
+      const servers = {
+        local: [
+          { url: 'http://localhost:5001', description: 'Auth Service' },
+          { url: 'http://localhost:5002', description: 'Order Service' },
+          { url: 'http://localhost:5003', description: 'Restaurant Service' },
+          { url: 'http://localhost:5005', description: 'Payment Service' },
+          { url: 'http://localhost:5006', description: 'Notification Service' },
+          { url: 'http://localhost:5008', description: 'Admin Service' }
+        ],
+        staging: [
+          { url: 'https://staging-api.fastfood-delivery.com', description: 'Staging API' }
+        ],
+        production: [
+          { url: 'https://api.fastfood-delivery.com', description: 'Production API' }
+        ]
+      };
+      console.log('Changed environment to:', env);
+    }
+  </script>
+</body>
+</html>
