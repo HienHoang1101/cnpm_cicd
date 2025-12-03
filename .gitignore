@@ -76,7 +76,7 @@ docker-compose.override.yml
 .circleci/
 .travis.yml
 .gitlab-ci.yml
-.github/
+# .github/  # Đã bật lại để GitHub Actions hoạt động
 
 **/node_modules
 **/.env
