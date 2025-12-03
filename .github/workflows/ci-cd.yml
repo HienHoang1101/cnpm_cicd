@@ -389,7 +389,7 @@ jobs:
         continue-on-error: true
 
       - name: 📊 Upload Trivy scan results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: 'trivy-results.sarif'
         continue-on-error: true
@@ -433,16 +433,16 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 🔬 Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: javascript
           queries: security-and-quality
 
       - name: 🔬 Autobuild
-        uses: github/codeql-action/autobuild@v3
+        uses: github/codeql-action/autobuild@v4
 
       - name: 🔬 Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: "/language:javascript"
 
@@ -474,11 +474,32 @@ jobs:
         with:
           node-version: '20'
 
-      - name: 📥 Download Test Coverage
+      - name: 📥 Download Test Coverage (Auth)
         uses: actions/download-artifact@v4
         with:
-          name: coverage-reports
-          path: coverage-reports/
+          name: unit-test-results-auth
+          path: auth/
+        continue-on-error: true
+
+      - name: 📥 Download Test Coverage (Order)
+        uses: actions/download-artifact@v4
+        with:
+          name: unit-test-results-order
+          path: order/
+        continue-on-error: true
+
+      - name: 📥 Download Test Coverage (Restaurant)
+        uses: actions/download-artifact@v4
+        with:
+          name: unit-test-results-restaurant
+          path: restaurant/
+        continue-on-error: true
+
+      - name: 📥 Download Test Coverage (Admin)
+        uses: actions/download-artifact@v4
+        with:
+          name: unit-test-results-admin-service
+          path: admin-service/
         continue-on-error: true
 
       - name: 📦 Install SonarScanner
