@@ -1,0 +1,18 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy test files
+COPY . .
+
+# Create reports directory
+RUN mkdir -p reports
+
+# Default command
+CMD ["npm", "run", "test:ci"]

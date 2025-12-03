@@ -1,0 +1,94 @@
+# Alertmanager Configuration for FastFood Delivery
+# =================================================
+
+global:
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'alerts@fastfood-delivery.com'
+  smtp_auth_username: '${SMTP_USERNAME}'
+  smtp_auth_password: '${SMTP_PASSWORD}'
+  resolve_timeout: 5m
+
+route:
+  group_by: ['alertname', 'service', 'severity']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'default-receiver'
+  routes:
+    # Critical alerts - immediate notification
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 0s
+      repeat_interval: 5m
+
+    # Warning alerts
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      group_wait: 30s
+      repeat_interval: 30m
+
+    # Test failure alerts
+    - match:
+        alertname: TestFailureRate
+      receiver: 'test-alerts'
+      group_wait: 0s
+      repeat_interval: 10m
+
+    # Service-specific routing
+    - match_re:
+        service: auth|order|payment
+      receiver: 'core-service-alerts'
+      group_wait: 10s
+
+receivers:
+  - name: 'default-receiver'
+    webhook_configs:
+      - url: 'http://localhost:5000/webhooks/alertmanager'
+        send_resolved: true
+
+  - name: 'critical-alerts'
+    webhook_configs:
+      - url: 'http://localhost:5000/webhooks/alertmanager/critical'
+        send_resolved: true
+    # email_configs:
+    #   - to: 'admin@fastfood-delivery.com'
+    #     subject: '[CRITICAL] {{ .GroupLabels.alertname }}'
+    #     html: '{{ template "email.critical.html" . }}'
+    #     headers:
+    #       Priority: 'urgent'
+
+  - name: 'warning-alerts'
+    webhook_configs:
+      - url: 'http://localhost:5000/webhooks/alertmanager/warning'
+        send_resolved: true
+
+  - name: 'test-alerts'
+    webhook_configs:
+      - url: 'http://localhost:5000/webhooks/alertmanager/tests'
+        send_resolved: true
+    # email_configs:
+    #   - to: 'devops@fastfood-delivery.com'
+    #     subject: '[TEST FAILURE] {{ .GroupLabels.alertname }}'
+
+  - name: 'core-service-alerts'
+    webhook_configs:
+      - url: 'http://localhost:5000/webhooks/alertmanager/services'
+        send_resolved: true
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'service']
+
+  - source_match:
+      alertname: 'ServiceDown'
+    target_match_re:
+      alertname: 'ServiceHigh.*'
+    equal: ['service']
+
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'

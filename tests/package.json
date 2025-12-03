@@ -1,0 +1,66 @@
+{
+  "name": "fastfood-delivery-tests",
+  "version": "1.0.0",
+  "description": "Test suite for FastFood Delivery microservices",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest --coverage --verbose",
+    "test:unit": "jest --testPathPattern=unit --coverage",
+    "test:integration": "jest --testPathPattern=integration --runInBand",
+    "test:e2e": "jest --testPathPattern=e2e --runInBand --detectOpenHandles",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage --coverageReporters=html --coverageReporters=lcov",
+    "test:ci": "jest --ci --coverage --reporters=default --reporters=jest-junit",
+    "test:report": "jest --json --outputFile=reports/test-results.json",
+    "report:html": "jest-html-reporter",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx"
+  },
+  "keywords": [
+    "testing",
+    "integration",
+    "e2e",
+    "microservices"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "axios": "^1.6.0",
+    "eslint": "^8.50.0",
+    "jest": "^29.7.0",
+    "jest-html-reporter": "^3.10.0",
+    "jest-junit": "^16.0.0",
+    "mongodb-memory-server": "^9.0.0",
+    "supertest": "^6.3.3"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testTimeout": 30000,
+    "verbose": true,
+    "collectCoverage": true,
+    "coverageDirectory": "./coverage",
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html",
+      "json"
+    ],
+    "reporters": [
+      "default",
+      [
+        "jest-junit",
+        {
+          "outputDirectory": "./reports",
+          "outputName": "junit.xml"
+        }
+      ]
+    ],
+    "testMatch": [
+      "**/*.test.js",
+      "**/*.spec.js"
+    ],
+    "modulePathIgnorePatterns": [
+      "<rootDir>/node_modules/"
+    ]
+  }
+}
