@@ -83,7 +83,7 @@ jobs:
 
       - name: 🧪 Run Unit Tests
         working-directory: ${{ matrix.service }}
-        run: npm run test:unit -- --coverage --coverageReporters=json --coverageReporters=lcov --coverageReporters=text
+        run: npm run test:ci
         env:
           NODE_OPTIONS: --experimental-vm-modules
         continue-on-error: true
