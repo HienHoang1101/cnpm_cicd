@@ -1,16 +1,17 @@
 /**
  * Integration Tests for Order Service
- * Tests actual API endpoints with real MongoDB connection
+ * Tests actual API endpoints with MongoDB Memory Server
  */
 
 import mongoose from 'mongoose';
 import request from 'supertest';
 import express from 'express';
 import jwt from 'jsonwebtoken';
+import { MongoMemoryServer } from 'mongodb-memory-server';
 
 // Import routes and models
-import orderRoutes from '../../routes/orderRoutes.js';
-import cartRoutes from '../../routes/cartRoutes.js';
+import orderRoutes from '../../routes/orderRoute.js';
+import cartRoutes from '../../routes/cartRoute.js';
 import Order from '../../model/order.js';
 import CartItem from '../../model/cartItem.js';
 
@@ -35,8 +36,8 @@ app.use(express.json());
 app.use('/api/orders', mockAuthMiddleware, orderRoutes);
 app.use('/api/cart', mockAuthMiddleware, cartRoutes);
 
-// Test configuration
-const MONGO_URI = process.env.MONGO_URI_TEST || 'mongodb://localhost:27017/order_integration_test';
+// MongoDB Memory Server instance
+let mongoServer;
 const JWT_SECRET = process.env.JWT_SECRET || 'test-secret';
 
 // Test data
@@ -121,13 +122,15 @@ const testOrderData = {
 };
 
 describe('Order Service Integration Tests', () => {
-  // Connect to test database before all tests
+  // Start MongoDB Memory Server and connect before all tests
   beforeAll(async () => {
     try {
-      await mongoose.connect(MONGO_URI);
-      console.log('Connected to test database');
+      mongoServer = await MongoMemoryServer.create();
+      const mongoUri = mongoServer.getUri();
+      await mongoose.connect(mongoUri);
+      console.log('Connected to MongoDB Memory Server');
     } catch (error) {
-      console.error('Failed to connect to test database:', error);
+      console.error('Failed to start MongoDB Memory Server:', error);
       throw error;
     }
   });
@@ -138,7 +141,10 @@ describe('Order Service Integration Tests', () => {
       await Order.deleteMany({});
       await CartItem.deleteMany({});
       await mongoose.connection.close();
-      console.log('Test database connection closed');
+      if (mongoServer) {
+        await mongoServer.stop();
+      }
+      console.log('MongoDB Memory Server stopped');
     } catch (error) {
       console.error('Error during cleanup:', error);
     }
@@ -521,8 +527,11 @@ describe('Order Service Integration Tests', () => {
 
 describe('Cart Integration Tests', () => {
   beforeAll(async () => {
+    // MongoDB connection is already established from Order tests
     if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(MONGO_URI);
+      mongoServer = await MongoMemoryServer.create();
+      const mongoUri = mongoServer.getUri();
+      await mongoose.connect(mongoUri);
     }
   });
 

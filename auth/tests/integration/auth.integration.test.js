@@ -1,6 +1,6 @@
 /**
  * Integration Tests for Auth Service
- * Tests actual API endpoints with real MongoDB connection
+ * Tests actual API endpoints with MongoDB Memory Server
  */
 
 import mongoose from 'mongoose';
@@ -8,6 +8,7 @@ import request from 'supertest';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import jwt from 'jsonwebtoken';
+import { MongoMemoryServer } from 'mongodb-memory-server';
 
 // Import routes and models
 import authRoutes from '../../routes/authRoutes.js';
@@ -21,8 +22,8 @@ app.use(cookieParser());
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 
-// Test configuration
-const MONGO_URI = process.env.MONGO_URI_TEST || 'mongodb://localhost:27017/auth_integration_test';
+// MongoDB Memory Server instance
+let mongoServer;
 
 // Test data
 const testUser = {
@@ -44,13 +45,15 @@ const testRestaurantUser = {
 };
 
 describe('Auth Service Integration Tests', () => {
-  // Connect to test database before all tests
+  // Start MongoDB Memory Server and connect before all tests
   beforeAll(async () => {
     try {
-      await mongoose.connect(MONGO_URI);
-      console.log('Connected to test database');
+      mongoServer = await MongoMemoryServer.create();
+      const mongoUri = mongoServer.getUri();
+      await mongoose.connect(mongoUri);
+      console.log('Connected to MongoDB Memory Server');
     } catch (error) {
-      console.error('Failed to connect to test database:', error);
+      console.error('Failed to start MongoDB Memory Server:', error);
       throw error;
     }
   });
@@ -58,14 +61,11 @@ describe('Auth Service Integration Tests', () => {
   // Clean up after all tests
   afterAll(async () => {
     try {
-      // Clean up test users
-      await User.deleteMany({ 
-        email: { 
-          $in: [testUser.email, testRestaurantUser.email, 'updated-test@example.com'] 
-        } 
-      });
       await mongoose.connection.close();
-      console.log('Test database connection closed');
+      if (mongoServer) {
+        await mongoServer.stop();
+      }
+      console.log('MongoDB Memory Server stopped');
     } catch (error) {
       console.error('Error during cleanup:', error);
     }
@@ -73,11 +73,7 @@ describe('Auth Service Integration Tests', () => {
 
   // Clean up before each test suite
   beforeEach(async () => {
-    await User.deleteMany({ 
-      email: { 
-        $in: [testUser.email, testRestaurantUser.email] 
-      } 
-    });
+    await User.deleteMany({});
   });
 
   describe('POST /api/auth/register', () => {
