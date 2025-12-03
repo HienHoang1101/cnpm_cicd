@@ -42,6 +42,7 @@
 | **CI/CD** | GitHub Actions Pipeline | ✅ Working |
 | **Unit Tests** | 107 tests across 7 services | ✅ All Passing |
 | **Integration Tests** | MongoDB Memory Server | ✅ Implemented |
+| **Performance Tests** | Artillery (Load, Stress, Spike, Soak) | ✅ Implemented |
 | **Monitoring** | Prometheus + Grafana + Alertmanager | ✅ Configured |
 | **API Docs** | OpenAPI/Swagger + Postman | ✅ Complete |
 | **Test Docs** | Test Plan, Cases, Strategy, Reports | ✅ Complete |
@@ -52,10 +53,11 @@
 ┌────────────────────────────────────────────────────────┐
 │                    TEST SUMMARY                        │
 ├────────────────────────────────────────────────────────┤
-│  ✅ Total Tests:     107                               │
-│  ✅ Passed:          107                               │
-│  ❌ Failed:          0                                 │
-│  📊 Pass Rate:       100%                              │
+│  ✅ Unit Tests:      107 (100% passing)                │
+│  ✅ Integration:     25 test cases                     │
+│  ✅ E2E Tests:       8 test cases                      │
+│  ⚡ Performance:     4 test suites (Artillery)         │
+│  📊 Total:           144 test cases                    │
 └────────────────────────────────────────────────────────┘
 ```
 
@@ -100,6 +102,25 @@ cd payment-service && npm test
 cd notification-service && npm test
 cd admin-service && npm test
 cd food-delivery-server && npm test
+```
+
+### Run Performance Tests
+
+```bash
+# Install Artillery
+cd tests && npm install
+
+# Run Load Test
+npm run perf:load
+
+# Run Stress Test
+npm run perf:stress
+
+# Run Spike Test
+npm run perf:spike
+
+# Run Soak Test (30 min)
+npm run perf:soak
 ```
 
 ### Start Monitoring
@@ -205,6 +226,15 @@ cnpm_cicd/
 
 ## 📝 Changelog
 
+### 03/12/2025
+- ✅ Added Performance Testing with Artillery
+  - Load Test (30 req/s sustained)
+  - Stress Test (up to 500 req/s)
+  - Spike Test (flash sale simulation)
+  - Soak Test (30-minute endurance)
+- ✅ Updated TEST_CASES.md with detailed test type categorization
+- ✅ Added performance test scripts to package.json
+
 ### 03/12/2024
 - ✅ Added comprehensive API documentation (OpenAPI/Swagger)
 - ✅ Added Postman Collection & Environment
@@ -219,4 +249,4 @@ cnpm_cicd/
 
 ---
 
-*Last Updated: 03/12/2024*
+*Last Updated: 03/12/2025*

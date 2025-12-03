@@ -7,7 +7,7 @@
 | **Dự án** | FastFood Delivery Platform |
 | **Phiên bản** | 1.0.0 |
 | **Ngày tạo** | 02/12/2024 |
-| **Cập nhật** | 03/12/2024 |
+| **Cập nhật** | 03/12/2025 |
 | **Người tạo** | DevOps Team |
 | **Trạng thái** | ✅ Active - All Tests Passing |
 
@@ -97,7 +97,24 @@ Test Plan này định nghĩa chiến lược, phạm vi, phương pháp và tà
 
 **Mục đích**: Kiểm tra hiệu năng dưới tải cao
 
-**Công cụ**: Artillery, k6 (tương lai)
+**Công cụ**: Artillery.io
+
+**Các loại test:**
+- **Load Test**: Tải bình thường (30 req/s)
+- **Stress Test**: Tìm điểm giới hạn (500 req/s)
+- **Spike Test**: Tải đột biến (flash sale simulation)
+- **Soak Test**: Endurance 30 phút
+
+**Files**: `tests/performance/*.yml`
+
+```bash
+# Run performance tests
+cd tests
+npm run perf:load      # Load test
+npm run perf:stress    # Stress test
+npm run perf:spike     # Spike test
+npm run perf:soak      # Soak test (30 min)
+```
 
 ### 3.6 Security Testing
 
@@ -252,4 +269,4 @@ docker-compose -f docker-compose.test.yml down -v
 
 ---
 
-*Tài liệu này được cập nhật lần cuối: 03/12/2024*
+*Tài liệu này được cập nhật lần cuối: 03/12/2025*

@@ -284,26 +284,54 @@ describe('Order API', () => {
 
 **Định nghĩa**: Kiểm tra hiệu năng dưới tải
 
-**Công cụ**: Artillery, k6, JMeter
+**Công cụ**: Artillery.io
+
+**Các loại Performance Test:**
+
+| Loại | Mục đích | Thời gian |
+|------|----------|-----------|
+| **Load Test** | Tải bình thường (30 req/s) | ~5 phút |
+| **Stress Test** | Tìm điểm giới hạn (500 req/s) | ~4 phút |
+| **Spike Test** | Tải đột biến (flash sale) | ~6 phút |
+| **Soak Test** | Endurance test | ~30 phút |
+
+**Files**: `tests/performance/*.yml`
+
+```bash
+# Chạy Performance Tests
+cd tests
+npm run perf:load      # Load test
+npm run perf:stress    # Stress test  
+npm run perf:spike     # Spike test
+npm run perf:soak      # Soak test (30 min)
+npm run perf:quick     # Quick test 100 requests
+```
 
 ```yaml
 # tests/performance/load-test.yml
 config:
   target: "http://localhost:5001"
   phases:
+    - duration: 30
+      arrivalRate: 5
+      name: "Warm up"
     - duration: 60
       arrivalRate: 10
-      name: "Warm up"
-    - duration: 120
-      arrivalRate: 50
+      rampTo: 30
       name: "Ramp up"
-    - duration: 300
-      arrivalRate: 100
+    - duration: 120
+      arrivalRate: 30
       name: "Sustained load"
+    - duration: 30
+      arrivalRate: 50
+      name: "Spike test"
+    - duration: 30
+      arrivalRate: 10
+      name: "Cool down"
 
 scenarios:
-  - name: "User login"
-    weight: 3
+  - name: "User Authentication"
+    weight: 30
     flow:
       - post:
           url: "/api/auth/login"
@@ -313,16 +341,24 @@ scenarios:
           expect:
             - statusCode: 200
 
-  - name: "Get orders"
-    weight: 2
+  - name: "Browse Restaurants"
+    weight: 40
     flow:
       - get:
-          url: "/api/orders"
-          headers:
-            Authorization: "Bearer {{ token }}"
+          url: "http://localhost:5003/api/restaurants"
           expect:
             - statusCode: 200
 ```
+
+**Performance Targets:**
+
+| Metric | Target | Acceptable |
+|--------|--------|------------|
+| Response Time (p50) | < 200ms | < 500ms |
+| Response Time (p95) | < 500ms | < 1000ms |
+| Response Time (p99) | < 1000ms | < 2000ms |
+| Error Rate | < 1% | < 5% |
+| Throughput | > 100 req/s | > 50 req/s |
 
 ### 2.6 Security Testing
 
@@ -840,7 +876,8 @@ class LoginPage {
 - [Supertest](https://github.com/visionmedia/supertest)
 - [Testing Library](https://testing-library.com/)
 - [Artillery Load Testing](https://www.artillery.io/)
+- [Performance Testing Guide](../tests/performance/README.md)
 
 ---
 
-*Tài liệu này được cập nhật lần cuối: 03/12/2024*
+*Tài liệu này được cập nhật lần cuối: 03/12/2025*
