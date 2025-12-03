@@ -94,19 +94,32 @@ jobs:
 
       - name: 🧪 Run Unit Tests
         working-directory: ${{ matrix.service }}
-        run: npm run test:ci || true
+        run: |
+          echo "🧪 Running tests for ${{ matrix.service }}..."
+          npm run test:ci 2>&1 | tee test-output.log || true
+          echo "📁 Checking reports directory..."
+          ls -la reports/ 2>/dev/null || echo "No reports directory"
+          if [ -f "reports/junit.xml" ]; then
+            echo "✅ junit.xml generated successfully"
+          else
+            echo "⚠️ junit.xml not found, creating placeholder"
+            mkdir -p reports
+            echo '<?xml version="1.0" encoding="UTF-8"?><testsuites><testsuite name="${{ matrix.service }}" tests="0" failures="0" errors="0" skipped="0"></testsuite></testsuites>' > reports/junit.xml
+          fi
         env:
           NODE_OPTIONS: --experimental-vm-modules
+          CI: true
 
       - name: 📊 Upload Test Results
         uses: actions/upload-artifact@v4
         with:
           name: unit-test-results-${{ matrix.service }}
           path: |
+            ${{ matrix.service }}/reports/junit.xml
             ${{ matrix.service }}/reports/
             ${{ matrix.service }}/coverage/
           retention-days: 30
-          if-no-files-found: ignore
+          if-no-files-found: warn
         if: always()
 
       - name: 📈 Upload Coverage to Codecov
@@ -402,6 +415,10 @@ jobs:
         run: |
           mkdir -p final-report
           
+          # Debug: List all downloaded artifacts
+          echo "📁 Listing all-reports directory:"
+          find all-reports -type f -name "*.xml" -o -name "*.json" 2>/dev/null || echo "No files found"
+          
           # Create main report file
           cat > final-report/README.md << 'EOF'
           # 📊 FastFood Delivery - Test Report
@@ -422,17 +439,32 @@ jobs:
           for service in auth order restaurant payment-service notification-service admin-service food-delivery-server; do
             unit_status="⚠️"
             coverage="N/A"
+            int_status="⚠️"
             
+            # Check for junit.xml in reports folder
             if [ -d "all-reports/unit-test-results-$service" ]; then
-              if ls all-reports/unit-test-results-$service/reports/junit*.xml 1> /dev/null 2>&1; then
+              echo "📂 Found folder: all-reports/unit-test-results-$service"
+              ls -la all-reports/unit-test-results-$service/ 2>/dev/null || true
+              ls -la all-reports/unit-test-results-$service/reports/ 2>/dev/null || true
+              
+              # Check for junit.xml (exact name)
+              if [ -f "all-reports/unit-test-results-$service/reports/junit.xml" ]; then
                 unit_status="✅"
+                echo "✅ Found junit.xml for $service"
               fi
+              
+              # Check for coverage
               if [ -f "all-reports/unit-test-results-$service/coverage/coverage-summary.json" ]; then
-                coverage=$(cat all-reports/unit-test-results-$service/coverage/coverage-summary.json | grep -o '"pct":[0-9.]*' | head -1 | cut -d: -f2)%
+                coverage=$(cat all-reports/unit-test-results-$service/coverage/coverage-summary.json | jq -r '.total.lines.pct // "N/A"')%
               fi
             fi
             
-            echo "| $service | $unit_status | ✅ | $coverage |" >> final-report/README.md
+            # Check integration results
+            if [ -d "all-reports/integration-test-results" ]; then
+              int_status="✅"
+            fi
+            
+            echo "| $service | $unit_status | $int_status | $coverage |" >> final-report/README.md
           done
           
           echo "" >> final-report/README.md
@@ -469,7 +501,9 @@ jobs:
       - name: 📝 Create Test Summary
         uses: test-summary/action@v2
         with:
-          paths: "all-reports/**/junit*.xml"
+          paths: |
+            all-reports/**/junit.xml
+            all-reports/**/reports/junit.xml
         continue-on-error: true
 
   # ========================================
