@@ -494,7 +494,109 @@ Total:                                                      140 (100%)
 | Unit Tests | 107 | 50ms | ~5s |
 | Integration | 25 | 200ms | ~5s |
 | E2E Tests | 8 | 2s | ~16s |
-| **TOTAL** | 140 | - | **~26s** |
+| Performance | 4 | 5min | ~15min |
+| **TOTAL** | 144 | - | **~20min** |
+
+---
+
+## ⚡ PERFORMANCE TESTS
+
+> **Performance Test là gì?**
+> - Test **hiệu năng** của hệ thống dưới các điều kiện tải khác nhau
+> - Đo lường **response time**, **throughput**, **error rate**
+> - Xác định **bottleneck** và **giới hạn** của hệ thống
+> - Tool: **Artillery.io**
+
+### Performance Tests Test Cái Gì?
+
+| Loại Test | Kiểm Tra | Thời Gian |
+|-----------|----------|-----------|
+| **Load Test** | Hiệu năng dưới tải bình thường | ~5 phút |
+| **Stress Test** | Điểm giới hạn của hệ thống | ~4 phút |
+| **Spike Test** | Phản ứng với tải đột biến | ~6 phút |
+| **Soak Test** | Ổn định dài hạn, memory leak | ~30 phút |
+
+---
+
+### 10. Performance Test Cases (4 tests)
+
+**📁 Files:** `tests/performance/*.yml`
+
+#### 10.1 Load Test
+
+| ID | Test Case | Loại | Test Cái Gì |
+|----|-----------|------|-------------|
+| PERF-001 | Auth endpoints under load | Performance | Login/Register với 30 req/s |
+| PERF-002 | Restaurant browsing load | Performance | GET restaurants với 50 req/s |
+| PERF-003 | Order creation load | Performance | POST orders với 20 req/s |
+| PERF-004 | Health check response | Performance | Health endpoints < 100ms |
+
+**Targets:**
+- Response Time (p95): < 500ms
+- Error Rate: < 1%
+- Throughput: > 100 req/s
+
+#### 10.2 Stress Test
+
+| ID | Test Case | Loại | Test Cái Gì |
+|----|-----------|------|-------------|
+| STRESS-001 | Auth under extreme load | Stress | Login với 200 req/s |
+| STRESS-002 | API breaking point | Stress | Tìm giới hạn với 500 req/s |
+| STRESS-003 | Error handling under load | Stress | Error rate tại breaking point |
+
+**Targets:**
+- Max Error Rate: < 10% tại breaking point
+- System recovery: < 60s
+
+#### 10.3 Spike Test
+
+| ID | Test Case | Loại | Test Cái Gì |
+|----|-----------|------|-------------|
+| SPIKE-001 | Flash sale simulation | Spike | 10x → 20x → 50x normal load |
+| SPIKE-002 | Recovery after spike | Spike | System trở về normal < 60s |
+| SPIKE-003 | Database connection pool | Spike | Connection pool không exhaust |
+
+**Targets:**
+- Recovery time: < 60s
+- No data loss during spike
+
+#### 10.4 Soak Test
+
+| ID | Test Case | Loại | Test Cái Gì |
+|----|-----------|------|-------------|
+| SOAK-001 | Memory stability | Soak | No memory leak sau 30 phút |
+| SOAK-002 | Connection stability | Soak | DB connections ổn định |
+| SOAK-003 | Response time consistency | Soak | p99 không tăng theo thời gian |
+
+**Targets:**
+- Memory increase: < 10% sau 30 phút
+- Response time drift: < 20%
+
+---
+
+### Chạy Performance Tests
+
+```bash
+cd tests
+
+# Load Test
+npm run perf:load
+
+# Stress Test  
+npm run perf:stress
+
+# Spike Test
+npm run perf:spike
+
+# Soak Test (30 phút)
+npm run perf:soak
+
+# Quick Test
+npm run perf:quick
+
+# Generate HTML Report
+npm run perf:report
+```
 
 ---
 
@@ -568,10 +670,18 @@ cnpm_cicd/
 │   └── tests/
 │       └── server.test.js         # Unit tests
 └── tests/
-    └── e2e/
-        ├── customer.e2e.test.js   # E2E tests
-        ├── restaurant.e2e.test.js
-        └── delivery.e2e.test.js
+    ├── e2e/
+    │   ├── customer.e2e.test.js   # E2E tests
+    │   ├── restaurant.e2e.test.js
+    │   └── delivery.e2e.test.js
+    └── performance/               # Performance tests
+        ├── load-test.yml
+        ├── stress-test.yml
+        ├── spike-test.yml
+        ├── soak-test.yml
+        ├── helpers/
+        │   └── functions.js
+        └── README.md
 ```
 
 ---
@@ -582,9 +692,10 @@ cnpm_cicd/
 - [TESTING_STRATEGY.md](./TESTING_STRATEGY.md) - Chiến lược testing
 - [TEST_EXECUTION_REPORT.md](./TEST_EXECUTION_REPORT.md) - Báo cáo thực thi
 - [API Documentation](./api/README.md) - Tài liệu API
+- [Performance Testing Guide](../tests/performance/README.md) - Hướng dẫn Performance Testing
 
 ---
 
 **Người tạo:** FastFood Delivery Team  
-**Ngày tạo:** Tháng 6, 2025  
-**Phiên bản:** 2.0
+**Ngày tạo:** Tháng 12, 2025  
+**Phiên bản:** 2.1

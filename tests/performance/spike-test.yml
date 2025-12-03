@@ -1,0 +1,75 @@
+# ⚡ Spike Test Configuration
+# Purpose: Test system behavior under sudden traffic spikes
+# Run: npx artillery run tests/performance/spike-test.yml
+
+config:
+  target: "http://localhost:5001"
+  phases:
+    # Normal baseline
+    - duration: 60
+      arrivalRate: 10
+      name: "Baseline"
+    
+    # First spike - 10x normal
+    - duration: 30
+      arrivalRate: 100
+      name: "Spike 1"
+    
+    # Recovery
+    - duration: 60
+      arrivalRate: 10
+      name: "Recovery 1"
+    
+    # Second spike - 20x normal
+    - duration: 30
+      arrivalRate: 200
+      name: "Spike 2"
+    
+    # Recovery
+    - duration: 60
+      arrivalRate: 10
+      name: "Recovery 2"
+    
+    # Third spike - Flash sale simulation
+    - duration: 15
+      arrivalRate: 500
+      name: "Flash sale spike"
+    
+    # Final recovery
+    - duration: 60
+      arrivalRate: 10
+      name: "Final recovery"
+
+  defaults:
+    headers:
+      Content-Type: "application/json"
+
+  ensure:
+    p95: 2000      # 95th percentile < 2s during normal load
+    maxErrorRate: 5
+
+scenarios:
+  # Typical user flow during promotion/flash sale
+  - name: "Flash Sale - Browse & Order"
+    weight: 60
+    flow:
+      - get:
+          url: "http://localhost:5003/api/restaurants"
+      - think: 1
+      - get:
+          url: "http://localhost:5003/api/restaurants/search?q=promotion"
+      - think: 2
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "user{{ $randomNumber(1, 1000) }}@test.com"
+            password: "password123"
+
+  - name: "Flash Sale - Quick Order"
+    weight: 40
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "quickuser@test.com"
+            password: "password123"

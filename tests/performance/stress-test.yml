@@ -1,0 +1,83 @@
+# ⚡ Stress Test Configuration
+# Purpose: Test system behavior under extreme load
+# Run: npx artillery run tests/performance/stress-test.yml
+
+config:
+  target: "http://localhost:5001"
+  phases:
+    # Phase 1: Normal load
+    - duration: 30
+      arrivalRate: 20
+      name: "Normal load"
+    
+    # Phase 2: High load
+    - duration: 60
+      arrivalRate: 50
+      name: "High load"
+    
+    # Phase 3: Stress load - Pushing limits
+    - duration: 60
+      arrivalRate: 100
+      name: "Stress load"
+    
+    # Phase 4: Extreme stress
+    - duration: 60
+      arrivalRate: 200
+      name: "Extreme stress"
+    
+    # Phase 5: Breaking point
+    - duration: 30
+      arrivalRate: 500
+      name: "Breaking point test"
+
+  defaults:
+    headers:
+      Content-Type: "application/json"
+  
+  # Timeout settings
+  timeout: 30
+
+  # Collect detailed statistics
+  ensure:
+    p99: 3000      # 99th percentile < 3s
+    maxErrorRate: 10  # Max 10% error rate
+
+scenarios:
+  # ═══════════════════════════════════════════════════════════
+  # Mixed workload simulating real traffic
+  # ═══════════════════════════════════════════════════════════
+  
+  - name: "API Stress - Auth"
+    weight: 25
+    flow:
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "stress{{ $randomNumber(1, 100) }}@test.com"
+            password: "password123"
+
+  - name: "API Stress - Restaurants"
+    weight: 35
+    flow:
+      - get:
+          url: "http://localhost:5003/api/restaurants"
+      - get:
+          url: "http://localhost:5003/api/restaurants?page=1&limit=10"
+
+  - name: "API Stress - Orders"
+    weight: 25
+    flow:
+      - get:
+          url: "http://localhost:5002/api/orders"
+          headers:
+            Authorization: "Bearer stress-test-token"
+
+  - name: "API Stress - Health"
+    weight: 15
+    flow:
+      - get:
+          url: "/health"
+      - get:
+          url: "http://localhost:5002/health"
+      - get:
+          url: "http://localhost:5003/health"

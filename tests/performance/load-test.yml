@@ -1,0 +1,220 @@
+# ⚡ Performance Load Test Configuration
+# Tool: Artillery.io
+# Run: npx artillery run tests/performance/load-test.yml
+
+config:
+  target: "http://localhost:5001"
+  phases:
+    # Phase 1: Warm up - Khởi động nhẹ
+    - duration: 30
+      arrivalRate: 5
+      name: "Warm up"
+    
+    # Phase 2: Ramp up - Tăng tải dần
+    - duration: 60
+      arrivalRate: 10
+      rampTo: 30
+      name: "Ramp up"
+    
+    # Phase 3: Sustained load - Tải ổn định
+    - duration: 120
+      arrivalRate: 30
+      name: "Sustained load"
+    
+    # Phase 4: Spike test - Tải đột biến
+    - duration: 30
+      arrivalRate: 50
+      name: "Spike test"
+    
+    # Phase 5: Cool down - Giảm tải
+    - duration: 30
+      arrivalRate: 10
+      name: "Cool down"
+
+  defaults:
+    headers:
+      Content-Type: "application/json"
+  
+  plugins:
+    expect: {}
+
+  # Variables cho test
+  variables:
+    testEmail: "perftest@example.com"
+    testPassword: "Test@123456"
+  
+  # Processor for custom functions
+  processor: "./helpers/functions.js"
+
+scenarios:
+  # ═══════════════════════════════════════════════════════════
+  # SCENARIO 1: Authentication Flow (Weight: 30%)
+  # ═══════════════════════════════════════════════════════════
+  - name: "User Authentication"
+    weight: 30
+    flow:
+      # Register new user
+      - post:
+          url: "/api/auth/register"
+          json:
+            name: "Performance Test User {{ $randomNumber(1000, 9999) }}"
+            email: "perftest{{ $randomNumber(1000, 9999) }}@example.com"
+            password: "{{ testPassword }}"
+            phone: "+84{{ $randomNumber(100000000, 999999999) }}"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+            - json: "$.user._id"
+              as: "userId"
+          expect:
+            - statusCode: 
+                - 201
+                - 409  # Email already exists is acceptable
+      
+      # Login
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "perftest@example.com"
+            password: "{{ testPassword }}"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+          expect:
+            - statusCode: 200
+            - contentType: json
+
+      # Get Profile
+      - get:
+          url: "/api/auth/profile"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode: 200
+
+  # ═══════════════════════════════════════════════════════════
+  # SCENARIO 2: Restaurant Browsing (Weight: 40%)
+  # ═══════════════════════════════════════════════════════════
+  - name: "Browse Restaurants"
+    weight: 40
+    flow:
+      # Get all restaurants
+      - get:
+          url: "http://localhost:5003/api/restaurants"
+          expect:
+            - statusCode: 200
+            - contentType: json
+          capture:
+            - json: "$.data[0]._id"
+              as: "restaurantId"
+      
+      # Search restaurants
+      - get:
+          url: "http://localhost:5003/api/restaurants/search?q=pizza"
+          expect:
+            - statusCode: 
+                - 200
+                - 404
+      
+      # Get restaurant details
+      - get:
+          url: "http://localhost:5003/api/restaurants/{{ restaurantId }}"
+          ifTrue: "restaurantId"
+          expect:
+            - statusCode: 200
+      
+      # Get restaurant menu
+      - get:
+          url: "http://localhost:5003/api/restaurants/{{ restaurantId }}/menu"
+          ifTrue: "restaurantId"
+          expect:
+            - statusCode: 
+                - 200
+                - 404
+
+  # ═══════════════════════════════════════════════════════════
+  # SCENARIO 3: Order Flow (Weight: 20%)
+  # ═══════════════════════════════════════════════════════════
+  - name: "Create Order"
+    weight: 20
+    flow:
+      # Login first
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "perftest@example.com"
+            password: "{{ testPassword }}"
+          capture:
+            - json: "$.token"
+              as: "authToken"
+          expect:
+            - statusCode: 
+                - 200
+                - 401  # User might not exist
+
+      # Create order (if logged in)
+      - post:
+          url: "http://localhost:5002/api/orders"
+          ifTrue: "authToken"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          json:
+            restaurantId: "507f1f77bcf86cd799439011"
+            items:
+              - itemId: "507f1f77bcf86cd799439012"
+                name: "Test Pizza"
+                quantity: 2
+                price: 15.99
+            deliveryAddress:
+              street: "123 Performance St"
+              city: "Test City"
+              coordinates:
+                lat: 10.7769
+                lng: 106.7009
+            paymentMethod: "COD"
+          capture:
+            - json: "$.order._id"
+              as: "orderId"
+          expect:
+            - statusCode:
+                - 201
+                - 400
+                - 401
+
+      # Get order status
+      - get:
+          url: "http://localhost:5002/api/orders/{{ orderId }}"
+          ifTrue: "orderId"
+          headers:
+            Authorization: "Bearer {{ authToken }}"
+          expect:
+            - statusCode:
+                - 200
+                - 404
+
+  # ═══════════════════════════════════════════════════════════
+  # SCENARIO 4: Health Checks (Weight: 10%)
+  # ═══════════════════════════════════════════════════════════
+  - name: "Health Check All Services"
+    weight: 10
+    flow:
+      - get:
+          url: "/health"
+          expect:
+            - statusCode: 200
+      - get:
+          url: "http://localhost:5002/health"
+          expect:
+            - statusCode: 200
+      - get:
+          url: "http://localhost:5003/health"
+          expect:
+            - statusCode: 200
+      - get:
+          url: "http://localhost:5005/health"
+          expect:
+            - statusCode: 200
+      - get:
+          url: "http://localhost:5006/health"
+          expect:
+            - statusCode: 200

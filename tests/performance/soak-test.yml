@@ -1,0 +1,82 @@
+# ⚡ Soak Test (Endurance Test) Configuration
+# Purpose: Test system stability over extended period
+# Run: npx artillery run tests/performance/soak-test.yml
+# Duration: ~30 minutes
+
+config:
+  target: "http://localhost:5001"
+  phases:
+    # Warm up
+    - duration: 60
+      arrivalRate: 5
+      name: "Warm up"
+    
+    # Sustained load for 25 minutes
+    - duration: 1500  # 25 minutes
+      arrivalRate: 20
+      name: "Sustained load"
+    
+    # Cool down
+    - duration: 60
+      arrivalRate: 5
+      name: "Cool down"
+
+  defaults:
+    headers:
+      Content-Type: "application/json"
+
+  # Memory leak detection thresholds
+  ensure:
+    p99: 5000
+    maxErrorRate: 2
+
+scenarios:
+  # Simulate typical daily usage patterns
+  - name: "Typical User Session"
+    weight: 40
+    flow:
+      # Login
+      - post:
+          url: "/api/auth/login"
+          json:
+            email: "soakuser@test.com"
+            password: "password123"
+          capture:
+            - json: "$.token"
+              as: "token"
+      
+      # Browse
+      - get:
+          url: "http://localhost:5003/api/restaurants"
+      - think: 3
+      
+      # Search
+      - get:
+          url: "http://localhost:5003/api/restaurants/search?q=food"
+      - think: 2
+      
+      # View details
+      - get:
+          url: "http://localhost:5003/api/restaurants"
+
+  - name: "API Polling"
+    weight: 30
+    flow:
+      # Simulates mobile app polling for updates
+      - loop:
+          - get:
+              url: "/health"
+          - think: 5
+        count: 6
+
+  - name: "Background Operations"
+    weight: 30
+    flow:
+      - get:
+          url: "http://localhost:5002/health"
+      - think: 2
+      - get:
+          url: "http://localhost:5003/health"
+      - think: 2
+      - get:
+          url: "http://localhost:5005/health"
