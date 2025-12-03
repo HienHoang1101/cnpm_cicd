@@ -7,7 +7,7 @@
 | **Dự án** | FastFood Delivery Platform |
 | **Phiên bản** | 1.0.0 |
 | **Tổng số Test Cases** | 150+ |
-| **Ngày cập nhật** | 02/12/2024 |
+| **Ngày cập nhật** | 03/12/2024 |
 
 ---
 
@@ -375,9 +375,11 @@
 ## 🔗 Tài Liệu Liên Quan
 
 - [Test Plan](./TEST_PLAN.md)
-- [API Documentation](./API_DOCS.md)
-- [DevOps Guide](../DEVOPS_GUIDE.md)
+- [Testing Strategy](./TESTING_STRATEGY.md)
+- [Test Execution Report](./TEST_EXECUTION_REPORT.md)
+- [API Documentation](./api/README.md)
+- [OpenAPI Specification](./api/openapi.yaml)
 
 ---
 
-*Tài liệu này được cập nhật lần cuối: 02/12/2024*
+*Tài liệu này được cập nhật lần cuối: 03/12/2024*

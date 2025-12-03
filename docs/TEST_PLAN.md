@@ -7,8 +7,9 @@
 | **Dự án** | FastFood Delivery Platform |
 | **Phiên bản** | 1.0.0 |
 | **Ngày tạo** | 02/12/2024 |
+| **Cập nhật** | 03/12/2024 |
 | **Người tạo** | DevOps Team |
-| **Trạng thái** | Active |
+| **Trạng thái** | ✅ Active - All Tests Passing |
 
 ---
 
@@ -241,10 +242,14 @@ docker-compose -f docker-compose.test.yml down -v
 ## 11. 🔗 Tài Liệu Liên Quan
 
 - [Test Cases Document](./TEST_CASES.md)
-- [API Documentation](./API_DOCS.md)
-- [DevOps Guide](../DEVOPS_GUIDE.md)
+- [Testing Strategy](./TESTING_STRATEGY.md)
+- [Test Execution Report](./TEST_EXECUTION_REPORT.md)
+- [API Documentation](./api/README.md)
+- [OpenAPI Specification](./api/openapi.yaml)
+- [Postman Collection](./api/postman_collection.json)
 - [Monitoring Guide](./LOGS_MONITORING_GUIDE.md)
+- [Test Dashboard Guide](./TEST_DASHBOARD_GUIDE.md)
 
 ---
 
-*Tài liệu này được cập nhật lần cuối: 02/12/2024*
+*Tài liệu này được cập nhật lần cuối: 03/12/2024*
