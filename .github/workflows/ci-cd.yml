@@ -488,27 +488,16 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        shell: cmd
         run: |
-          sonar-scanner \
-            -Dsonar.projectKey=fastfood-delivery \
-            -Dsonar.projectName="FastFood Delivery Platform" \
-            -Dsonar.sources=auth,order,restaurant,payment-service,notification-service,admin-service,food-delivery-server \
-            -Dsonar.host.url=${SONAR_HOST_URL:-http://localhost:9000} \
-            -Dsonar.login=$SONAR_TOKEN \
-            -Dsonar.exclusions=**/node_modules/**,**/coverage/**,**/dist/**,**/build/**,**/tests/** \
-            -Dsonar.javascript.lcov.reportPaths=auth/coverage/lcov.info,order/coverage/lcov.info,restaurant/coverage/lcov.info,admin-service/coverage/lcov.info \
-            -Dsonar.qualitygate.wait=true \
-            -Dsonar.testExecutionReportPaths=
+          sonar-scanner -Dsonar.projectKey=fastfood-delivery -Dsonar.projectName="FastFood Delivery Platform" -Dsonar.sources=auth,order,restaurant,payment-service,notification-service,admin-service,food-delivery-server -Dsonar.host.url=http://localhost:9000 -Dsonar.login=%SONAR_TOKEN% -Dsonar.exclusions=**/node_modules/**,**/coverage/**,**/dist/**,**/build/**,**/tests/** -Dsonar.javascript.lcov.reportPaths=auth/coverage/lcov.info,order/coverage/lcov.info,restaurant/coverage/lcov.info,admin-service/coverage/lcov.info -Dsonar.qualitygate.wait=true -Dsonar.testExecutionReportPaths=
 
       - name: 📊 SonarQube Quality Gate
+        shell: cmd
         run: |
-          echo "## 🔍 SonarQube Analysis Complete" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "✅ Quality Gate: PASSED" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "View detailed results in [SonarQube Dashboard](${SONAR_HOST_URL:-http://localhost:9000}/dashboard?id=fastfood-delivery)" >> $GITHUB_STEP_SUMMARY
-        env:
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          echo ## SonarQube Analysis Complete >> %GITHUB_STEP_SUMMARY%
+          echo. >> %GITHUB_STEP_SUMMARY%
+          echo Quality Gate: PASSED >> %GITHUB_STEP_SUMMARY%
 
   # ========================================
   # JOB 6d: SonarQube Local (Manual Trigger)
