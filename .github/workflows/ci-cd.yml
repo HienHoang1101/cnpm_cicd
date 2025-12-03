@@ -26,7 +26,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          # Bỏ cache vì không có package-lock.json
 
       - name: 📝 Install ESLint globally
         run: npm install -g eslint
@@ -58,6 +58,7 @@ jobs:
     name: 🧪 Unit Tests
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         service: [auth, order, restaurant, payment-service, notification-service, admin-service, food-delivery-server]
     steps:
@@ -68,7 +69,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          # Bỏ cache vì không có package-lock.json
 
       - name: 📦 Install dependencies
         working-directory: ${{ matrix.service }}
@@ -76,10 +77,9 @@ jobs:
 
       - name: 🧪 Run Unit Tests
         working-directory: ${{ matrix.service }}
-        run: npm run test:unit -- --coverage --coverageReporters=json --coverageReporters=lcov --coverageReporters=text --reporters=default --reporters=jest-junit
+        run: npm run test:unit -- --coverage --coverageReporters=json --coverageReporters=lcov --coverageReporters=text
         env:
-          JEST_JUNIT_OUTPUT_DIR: ./reports
-          JEST_JUNIT_OUTPUT_NAME: junit-${{ matrix.service }}.xml
+          NODE_OPTIONS: --experimental-vm-modules
         continue-on-error: true
 
       - name: 📊 Upload Test Results
