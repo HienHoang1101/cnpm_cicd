@@ -1,0 +1,115 @@
+{{/* Slack Templates for FastFood Delivery AlertManager */}}
+
+{{/* Default Slack Title */}}
+{{ define "slack.default.title" }}
+{{ if eq .Status "firing" }}🔔{{ else }}✅{{ end }} [{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}
+{{ end }}
+
+{{/* Default Slack Text */}}
+{{ define "slack.default.text" }}
+{{ if eq .Status "firing" }}
+*Alerts Firing:* {{ .Alerts.Firing | len }}
+{{ else }}
+*Alerts Resolved:* {{ .Alerts.Resolved | len }}
+{{ end }}
+
+{{ range .Alerts }}
+━━━━━━━━━━━━━━━━━━━━
+*Summary:* {{ .Annotations.summary }}
+*Description:* {{ .Annotations.description }}
+{{ if .Labels.service }}*Service:* `{{ .Labels.service }}`{{ end }}
+{{ if .Labels.severity }}*Severity:* {{ .Labels.severity }}{{ end }}
+{{ if eq .Status "firing" }}
+*Started:* {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+{{ else }}
+*Resolved:* {{ .EndsAt.Format "2006-01-02 15:04:05" }}
+{{ end }}
+{{ end }}
+{{ end }}
+
+{{/* Critical Alert Slack Template */}}
+{{ define "slack.critical.title" }}
+🚨 CRITICAL: {{ .GroupLabels.alertname }}
+{{ end }}
+
+{{ define "slack.critical.text" }}
+*IMMEDIATE ATTENTION REQUIRED*
+
+{{ range .Alerts }}
+━━━━━━━━━━━━━━━━━━━━
+*Alert:* {{ .Labels.alertname }}
+*Summary:* {{ .Annotations.summary }}
+*Description:* {{ .Annotations.description }}
+{{ if .Labels.service }}*Affected Service:* `{{ .Labels.service }}`{{ end }}
+*Time:* {{ .StartsAt.Format "2006-01-02 15:04:05 MST" }}
+{{ end }}
+
+<{{ .ExternalURL }}|🔗 View in Alertmanager>
+{{ end }}
+
+{{/* Service Down Alert */}}
+{{ define "slack.servicedown.text" }}
+🔴 *SERVICE DOWN DETECTED*
+
+{{ range .Alerts }}
+*Service:* `{{ .Labels.service }}`
+*Status:* {{ .Status | toUpper }}
+*Details:* {{ .Annotations.description }}
+{{ end }}
+
+*Action Required:* Check service health and restart if necessary.
+{{ end }}
+
+{{/* Database Alert Template */}}
+{{ define "slack.database.title" }}
+💾 DATABASE: {{ .GroupLabels.alertname }}
+{{ end }}
+
+{{ define "slack.database.text" }}
+{{ if eq .Status "firing" }}
+⚠️ *Database Issue Detected*
+{{ else }}
+✅ *Database Issue Resolved*
+{{ end }}
+
+{{ range .Alerts }}
+{{ if .Labels.service }}*Database:* {{ .Labels.service }}{{ end }}
+*Issue:* {{ .Annotations.summary }}
+*Details:* {{ .Annotations.description }}
+{{ end }}
+{{ end }}
+
+{{/* Resolved Alert Template */}}
+{{ define "slack.resolved.text" }}
+✅ *RESOLVED*
+
+The following alerts have been resolved:
+{{ range .Alerts }}
+• {{ .Labels.alertname }}{{ if .Labels.service }} ({{ .Labels.service }}){{ end }}
+{{ end }}
+
+*Resolved at:* {{ (index .Alerts 0).EndsAt.Format "2006-01-02 15:04:05 MST" }}
+{{ end }}
+
+{{/* Alert Summary for multiple alerts */}}
+{{ define "slack.summary" }}
+📊 *Alert Summary*
+
+*Status:* {{ .Status | toUpper }}
+*Grouped by:* {{ .GroupLabels }}
+*Total Alerts:* {{ len .Alerts }}
+
+{{ if .Alerts.Firing }}
+🔴 *Firing ({{ .Alerts.Firing | len }}):*
+{{ range .Alerts.Firing }}
+  • {{ .Labels.alertname }}{{ if .Labels.service }} - {{ .Labels.service }}{{ end }}
+{{ end }}
+{{ end }}
+
+{{ if .Alerts.Resolved }}
+✅ *Resolved ({{ .Alerts.Resolved | len }}):*
+{{ range .Alerts.Resolved }}
+  • {{ .Labels.alertname }}{{ if .Labels.service }} - {{ .Labels.service }}{{ end }}
+{{ end }}
+{{ end }}
+{{ end }}

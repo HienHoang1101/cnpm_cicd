@@ -1,0 +1,321 @@
+{{/* Email Templates for FastFood Delivery AlertManager */}}
+
+{{/* Critical Alert Email Template */}}
+{{ define "email.critical.html" }}
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>🚨 Critical Alert - FastFood Delivery</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .header {
+      background: {{ if eq .Status "firing" }}#dc3545{{ else }}#28a745{{ end }};
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+    .header .status {
+      font-size: 14px;
+      opacity: 0.9;
+      margin-top: 5px;
+    }
+    .content {
+      padding: 20px;
+    }
+    .alert-box {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 0 4px 4px 0;
+    }
+    .alert-box.critical {
+      background: #f8d7da;
+      border-left-color: #dc3545;
+    }
+    .alert-box.resolved {
+      background: #d4edda;
+      border-left-color: #28a745;
+    }
+    .label {
+      font-weight: bold;
+      color: #555;
+      display: inline-block;
+      width: 100px;
+    }
+    .value {
+      color: #333;
+    }
+    .alert-item {
+      margin: 15px 0;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 4px;
+    }
+    .alert-title {
+      font-weight: bold;
+      font-size: 16px;
+      color: #333;
+      margin-bottom: 10px;
+    }
+    .alert-description {
+      color: #666;
+      line-height: 1.5;
+    }
+    .footer {
+      background: #f8f9fa;
+      padding: 15px 20px;
+      text-align: center;
+      font-size: 12px;
+      color: #666;
+    }
+    .btn {
+      display: inline-block;
+      padding: 10px 20px;
+      background: #007bff;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+      margin: 10px 5px;
+    }
+    .btn:hover {
+      background: #0056b3;
+    }
+    .meta-info {
+      font-size: 12px;
+      color: #888;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>
+        {{ if eq .Status "firing" }}🚨 CRITICAL ALERT{{ else }}✅ RESOLVED{{ end }}
+      </h1>
+      <div class="status">FastFood Delivery Monitoring</div>
+    </div>
+    
+    <div class="content">
+      <div class="alert-box {{ if eq .Status "firing" }}critical{{ else }}resolved{{ end }}">
+        <div>
+          <span class="label">Alert:</span>
+          <span class="value">{{ .GroupLabels.alertname }}</span>
+        </div>
+        <div>
+          <span class="label">Status:</span>
+          <span class="value">{{ .Status | toUpper }}</span>
+        </div>
+        <div>
+          <span class="label">Severity:</span>
+          <span class="value">{{ .CommonLabels.severity }}</span>
+        </div>
+        {{ if .CommonLabels.service }}
+        <div>
+          <span class="label">Service:</span>
+          <span class="value">{{ .CommonLabels.service }}</span>
+        </div>
+        {{ end }}
+      </div>
+
+      <h3>Alert Details</h3>
+      {{ range .Alerts }}
+      <div class="alert-item">
+        <div class="alert-title">{{ .Annotations.summary }}</div>
+        <div class="alert-description">{{ .Annotations.description }}</div>
+        <div class="meta-info">
+          {{ if eq .Status "firing" }}
+          Started: {{ .StartsAt.Format "2006-01-02 15:04:05 MST" }}
+          {{ else }}
+          Resolved: {{ .EndsAt.Format "2006-01-02 15:04:05 MST" }}
+          {{ end }}
+        </div>
+      </div>
+      {{ end }}
+
+      <div style="text-align: center; margin-top: 20px;">
+        <a href="{{ .ExternalURL }}" class="btn">View in Alertmanager</a>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <p>This is an automated alert from FastFood Delivery Monitoring System</p>
+      <p>Prometheus + Alertmanager</p>
+    </div>
+  </div>
+</body>
+</html>
+{{ end }}
+
+{{/* Database Alert Email Template */}}
+{{ define "email.database.html" }}
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>💾 Database Alert - FastFood Delivery</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .header {
+      background: {{ if eq .Status "firing" }}#6c757d{{ else }}#28a745{{ end }};
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+    .content {
+      padding: 20px;
+    }
+    .db-icon {
+      font-size: 48px;
+      text-align: center;
+      margin: 20px 0;
+    }
+    .alert-info {
+      background: #e9ecef;
+      padding: 15px;
+      border-radius: 4px;
+      margin: 10px 0;
+    }
+    .alert-info .row {
+      display: flex;
+      margin: 5px 0;
+    }
+    .alert-info .label {
+      font-weight: bold;
+      width: 120px;
+      color: #555;
+    }
+    .alert-info .value {
+      color: #333;
+    }
+    .footer {
+      background: #f8f9fa;
+      padding: 15px 20px;
+      text-align: center;
+      font-size: 12px;
+      color: #666;
+    }
+    .btn {
+      display: inline-block;
+      padding: 10px 20px;
+      background: #6c757d;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>
+        {{ if eq .Status "firing" }}💾 DATABASE ALERT{{ else }}✅ DATABASE RECOVERED{{ end }}
+      </h1>
+    </div>
+    
+    <div class="content">
+      <div class="db-icon">💾</div>
+
+      <div class="alert-info">
+        <div class="row">
+          <span class="label">Alert:</span>
+          <span class="value">{{ .GroupLabels.alertname }}</span>
+        </div>
+        <div class="row">
+          <span class="label">Status:</span>
+          <span class="value">{{ .Status | toUpper }}</span>
+        </div>
+        {{ if .CommonLabels.service }}
+        <div class="row">
+          <span class="label">Database:</span>
+          <span class="value">{{ .CommonLabels.service }}</span>
+        </div>
+        {{ end }}
+      </div>
+
+      {{ range .Alerts }}
+      <div style="margin: 15px 0; padding: 15px; background: #f8f9fa; border-radius: 4px;">
+        <strong>{{ .Annotations.summary }}</strong>
+        <p style="color: #666; margin: 10px 0;">{{ .Annotations.description }}</p>
+      </div>
+      {{ end }}
+
+      <div style="text-align: center; margin-top: 20px;">
+        <a href="{{ .ExternalURL }}" class="btn">View in Alertmanager</a>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <p>FastFood Delivery Database Monitoring</p>
+    </div>
+  </div>
+</body>
+</html>
+{{ end }}
+
+{{/* Default Email Template */}}
+{{ define "email.default.html" }}
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Alert - FastFood Delivery</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .alert { padding: 15px; margin: 10px 0; border-radius: 4px; }
+    .firing { background: #f8d7da; border: 1px solid #f5c6cb; }
+    .resolved { background: #d4edda; border: 1px solid #c3e6cb; }
+  </style>
+</head>
+<body>
+  <h2>{{ if eq .Status "firing" }}🔔 Alert{{ else }}✅ Resolved{{ end }}: {{ .GroupLabels.alertname }}</h2>
+  
+  {{ range .Alerts }}
+  <div class="alert {{ .Status }}">
+    <strong>{{ .Annotations.summary }}</strong>
+    <p>{{ .Annotations.description }}</p>
+  </div>
+  {{ end }}
+  
+  <p><a href="{{ .ExternalURL }}">View in Alertmanager</a></p>
+</body>
+</html>
+{{ end }}

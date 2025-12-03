@@ -1,94 +1,147 @@
 # Alertmanager Configuration for FastFood Delivery
 # =================================================
+# 
+# SETUP INSTRUCTIONS:
+# -------------------
+# 1. SLACK: Create Incoming Webhook at https://api.slack.com/apps
+#    - Create new App → Incoming Webhooks → Add to Workspace
+#    - Copy webhook URL and replace SLACK_WEBHOOK_URL_PLACEHOLDER below
+#
+# 2. EMAIL (Gmail): 
+#    - Enable 2FA on Gmail account
+#    - Generate App Password at https://myaccount.google.com/apppasswords
+#    - Replace SMTP_USERNAME_PLACEHOLDER and SMTP_PASSWORD_PLACEHOLDER below
+#
+# NOTE: Replace all *_PLACEHOLDER values with your actual credentials
 
 global:
+  # Email Configuration (Gmail SMTP)
+  # Replace with your Gmail credentials
   smtp_smarthost: 'smtp.gmail.com:587'
-  smtp_from: 'alerts@fastfood-delivery.com'
-  smtp_auth_username: '${SMTP_USERNAME}'
-  smtp_auth_password: '${SMTP_PASSWORD}'
+  smtp_from: 'fastfood-alerts@gmail.com'
+  smtp_auth_username: 'your-email@gmail.com'
+  smtp_auth_password: 'your-gmail-app-password'
+  smtp_require_tls: true
   resolve_timeout: 5m
+
+  # Slack Configuration - Replace with your webhook URL
+  # Get it from: https://api.slack.com/apps → Incoming Webhooks
+  slack_api_url: 'https://hooks.slack.com/services/YOUR/WEBHOOK/URL'
 
 route:
   group_by: ['alertname', 'service', 'severity']
-  group_wait: 10s
-  group_interval: 10s
-  repeat_interval: 1h
-  receiver: 'default-receiver'
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  receiver: 'slack-notifications'
+  
   routes:
-    # Critical alerts - immediate notification
+    # 🚨 Critical alerts - immediate notification to all channels
     - match:
         severity: critical
       receiver: 'critical-alerts'
       group_wait: 0s
-      repeat_interval: 5m
+      repeat_interval: 15m
+      continue: false
 
-    # Warning alerts
+    # ⚠️ Warning alerts
     - match:
         severity: warning
-      receiver: 'warning-alerts'
-      group_wait: 30s
-      repeat_interval: 30m
+      receiver: 'slack-notifications'
+      group_wait: 1m
+      repeat_interval: 1h
 
-    # Test failure alerts
+    # 🔴 Service Down alerts
     - match:
-        alertname: TestFailureRate
-      receiver: 'test-alerts'
+        alertname: ServiceDown
+      receiver: 'critical-alerts'
       group_wait: 0s
       repeat_interval: 10m
 
-    # Service-specific routing
+    # 💾 Database alerts
     - match_re:
-        service: auth|order|payment
-      receiver: 'core-service-alerts'
-      group_wait: 10s
+        alertname: 'MongoDB.*|Redis.*'
+      receiver: 'slack-notifications'
+      group_wait: 30s
+      repeat_interval: 30m
 
 receivers:
-  - name: 'default-receiver'
-    webhook_configs:
-      - url: 'http://localhost:5000/webhooks/alertmanager'
+  # Default receiver - Slack only
+  - name: 'slack-notifications'
+    slack_configs:
+      - channel: '#fastfood-alerts'
         send_resolved: true
+        username: 'FastFood AlertManager'
+        icon_emoji: ':bell:'
+        title: '{{ if eq .Status "firing" }}🔔{{ else }}✅{{ end }} {{ .GroupLabels.alertname }}'
+        text: |-
+          *Status:* {{ .Status | toUpper }}
+          *Severity:* {{ .CommonLabels.severity | default "info" }}
+          {{ if .CommonLabels.service }}*Service:* {{ .CommonLabels.service }}{{ end }}
+          
+          {{ range .Alerts }}
+          *Summary:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          {{ end }}
+        color: '{{ if eq .Status "firing" }}{{ if eq .CommonLabels.severity "critical" }}danger{{ else }}warning{{ end }}{{ else }}good{{ end }}'
 
+  # 🚨 Critical alerts - Slack + Email
   - name: 'critical-alerts'
-    webhook_configs:
-      - url: 'http://localhost:5000/webhooks/alertmanager/critical'
+    slack_configs:
+      - channel: '#fastfood-critical'
         send_resolved: true
-    # email_configs:
-    #   - to: 'admin@fastfood-delivery.com'
-    #     subject: '[CRITICAL] {{ .GroupLabels.alertname }}'
-    #     html: '{{ template "email.critical.html" . }}'
-    #     headers:
-    #       Priority: 'urgent'
-
-  - name: 'warning-alerts'
-    webhook_configs:
-      - url: 'http://localhost:5000/webhooks/alertmanager/warning'
+        username: 'FastFood CRITICAL 🚨'
+        icon_emoji: ':rotating_light:'
+        title: '🚨 CRITICAL: {{ .GroupLabels.alertname }}'
+        text: |-
+          *🚨 IMMEDIATE ATTENTION REQUIRED*
+          
+          *Alert:* {{ .GroupLabels.alertname }}
+          *Severity:* CRITICAL
+          {{ if .CommonLabels.service }}*Service:* {{ .CommonLabels.service }}{{ end }}
+          
+          {{ range .Alerts }}
+          ━━━━━━━━━━━━━━━━━━━━
+          *Summary:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          {{ end }}
+          
+          <{{ .ExternalURL }}|🔗 View in Alertmanager>
+        color: 'danger'
+    email_configs:
+      - to: 'admin@your-company.com'
         send_resolved: true
-
-  - name: 'test-alerts'
-    webhook_configs:
-      - url: 'http://localhost:5000/webhooks/alertmanager/tests'
-        send_resolved: true
-    # email_configs:
-    #   - to: 'devops@fastfood-delivery.com'
-    #     subject: '[TEST FAILURE] {{ .GroupLabels.alertname }}'
-
-  - name: 'core-service-alerts'
-    webhook_configs:
-      - url: 'http://localhost:5000/webhooks/alertmanager/services'
-        send_resolved: true
+        headers:
+          Subject: '🚨 [CRITICAL] {{ .GroupLabels.alertname }} - FastFood Delivery'
 
 inhibit_rules:
+  # Suppress warning if critical is firing for same alert
   - source_match:
       severity: 'critical'
     target_match:
       severity: 'warning'
     equal: ['alertname', 'service']
 
+  # Suppress all service alerts if the service is down
   - source_match:
       alertname: 'ServiceDown'
     target_match_re:
-      alertname: 'ServiceHigh.*'
+      alertname: 'Service.*'
     equal: ['service']
+
+  # Suppress MongoDB alerts if MongoDB is down
+  - source_match:
+      alertname: 'MongoDBDown'
+    target_match_re:
+      alertname: 'MongoDB.*'
+    equal: []
+
+  # Suppress Redis alerts if Redis is down
+  - source_match:
+      alertname: 'RedisDown'
+    target_match_re:
+      alertname: 'Redis.*'
+    equal: []
 
 templates:
   - '/etc/alertmanager/templates/*.tmpl'
