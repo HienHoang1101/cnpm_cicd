@@ -447,12 +447,22 @@ jobs:
           category: "/language:javascript"
 
   # ========================================
-  # JOB 6c: SonarCloud Analysis
+  # JOB 6c: SonarQube Analysis (Self-Hosted)
   # ========================================
-  sonarcloud:
-    name: 🔍 SonarCloud Code Analysis
-    runs-on: ubuntu-latest
+  # NOTE: This job requires a self-hosted runner with access to SonarQube server
+  # For GitHub-hosted runners, use SonarCloud instead
+  # 
+  # Setup requirements:
+  # 1. Self-hosted runner with Docker installed
+  # 2. SonarQube server running (docker run -d -p 9000:9000 sonarqube:lts-community)
+  # 3. Add SONAR_TOKEN and SONAR_HOST_URL secrets to repository
+  #
+  sonarqube:
+    name: 🔍 SonarQube Code Analysis
+    runs-on: self-hosted  # Requires self-hosted runner
     needs: [lint, unit-tests]
+    # Skip if running on GitHub-hosted runners (no access to local SonarQube)
+    if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[sonar]') }}
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -471,25 +481,62 @@ jobs:
           path: coverage-reports/
         continue-on-error: true
 
-      - name: 🔍 SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          args: >
-            -Dsonar.projectKey=${{ github.repository_owner }}_${{ github.event.repository.name }}
-            -Dsonar.organization=${{ github.repository_owner }}
-            -Dsonar.sources=auth,order,restaurant,payment-service,notification-service,admin-service
-            -Dsonar.exclusions=**/node_modules/**,**/coverage/**,**/dist/**,**/*.test.js,**/*.spec.js
-            -Dsonar.javascript.lcov.reportPaths=coverage-reports/auth/lcov.info,coverage-reports/order/lcov.info,coverage-reports/restaurant/lcov.info
-            -Dsonar.qualitygate.wait=true
+      - name: 📦 Install SonarScanner
+        run: npm install -g sonar-scanner
 
-      - name: 📊 SonarCloud Quality Gate
+      - name: 🔍 SonarQube Scan
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         run: |
-          echo "## 🔍 SonarCloud Analysis Complete" >> $GITHUB_STEP_SUMMARY
+          sonar-scanner \
+            -Dsonar.projectKey=fastfood-delivery \
+            -Dsonar.projectName="FastFood Delivery Platform" \
+            -Dsonar.sources=auth,order,restaurant,payment-service,notification-service,admin-service,food-delivery-server \
+            -Dsonar.host.url=${SONAR_HOST_URL:-http://localhost:9000} \
+            -Dsonar.login=$SONAR_TOKEN \
+            -Dsonar.exclusions=**/node_modules/**,**/coverage/**,**/dist/**,**/build/**,**/tests/** \
+            -Dsonar.javascript.lcov.reportPaths=auth/coverage/lcov.info,order/coverage/lcov.info,restaurant/coverage/lcov.info,admin-service/coverage/lcov.info \
+            -Dsonar.qualitygate.wait=true \
+            -Dsonar.testExecutionReportPaths=
+
+      - name: 📊 SonarQube Quality Gate
+        run: |
+          echo "## 🔍 SonarQube Analysis Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "View detailed results in [SonarCloud Dashboard](https://sonarcloud.io/dashboard?id=${{ github.repository_owner }}_${{ github.event.repository.name }})" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Quality Gate: PASSED" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "View detailed results in [SonarQube Dashboard](${SONAR_HOST_URL:-http://localhost:9000}/dashboard?id=fastfood-delivery)" >> $GITHUB_STEP_SUMMARY
+        env:
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+  # ========================================
+  # JOB 6d: SonarQube Local (Manual Trigger)
+  # ========================================
+  sonarqube-local-instructions:
+    name: 📋 SonarQube Local Instructions
+    runs-on: ubuntu-latest
+    needs: [lint]
+    if: ${{ github.event_name == 'pull_request' }}
+    steps:
+      - name: 📋 Local SonarQube Instructions
+        run: |
+          echo "## 🔍 SonarQube Local Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "To run SonarQube analysis locally:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 1. Start SonarQube Server" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo 'docker run -d --name sonarqube -p 9000:9000 sonarqube:lts-community' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 2. Run Scanner" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo 'npm install -g sonar-scanner' >> $GITHUB_STEP_SUMMARY
+          echo 'sonar-scanner -Dsonar.login=YOUR_TOKEN' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📖 See [CODE_QUALITY_GUIDE.md](docs/CODE_QUALITY_GUIDE.md) for details." >> $GITHUB_STEP_SUMMARY
 
   # ========================================
   # JOB 7: DEPLOY TO STAGING

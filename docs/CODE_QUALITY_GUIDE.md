@@ -160,47 +160,80 @@ Settings:
 
 ---
 
-## SonarCloud Integration
+## SonarQube Integration (Self-Hosted)
 
-### Đăng ký SonarCloud
+Dự án sử dụng **SonarQube Community Edition** (miễn phí) chạy local thay vì SonarCloud.
 
-1. Truy cập [sonarcloud.io](https://sonarcloud.io)
-2. Đăng nhập với GitHub
-3. Import repository `cnpm_cicd`
-4. Copy **Project Key** và **Organization**
+### Khởi động SonarQube Server
 
-### Tạo SONAR_TOKEN
+```bash
+# Khởi động SonarQube bằng Docker
+docker run -d --name sonarqube -p 9000:9000 sonarqube:lts-community
 
-1. SonarCloud → My Account → Security
-2. Generate Tokens → Tạo token mới
-3. Copy token
+# Kiểm tra container đang chạy
+docker ps --filter "name=sonarqube"
+```
 
-### Thêm Secret vào GitHub
+### Truy cập Dashboard
 
-1. GitHub Repo → Settings → Secrets and variables → Actions
-2. New repository secret:
-   - Name: `SONAR_TOKEN`
-   - Value: (paste token)
+- **URL:** http://localhost:9000
+- **Username:** `admin`
+- **Password:** `admin` (đổi sau lần đầu đăng nhập)
+
+### Tạo Project & Token
+
+1. Đăng nhập SonarQube
+2. **Create Project** → **Create a local project**
+3. Project Key: `fastfood-delivery`
+4. Display Name: `FastFood Delivery Platform`
+5. Click **Locally** → **Generate Token**
+6. Copy token
+
+### Chạy SonarQube Scanner
+
+```bash
+# Cài đặt Scanner
+npm install -g sonar-scanner
+
+# Chạy scan với token
+sonar-scanner \
+  -Dsonar.projectKey=fastfood-delivery \
+  -Dsonar.sources=auth,order,restaurant,payment-service,notification-service,admin-service,food-delivery-server \
+  -Dsonar.host.url=http://localhost:9000 \
+  -Dsonar.login=YOUR_TOKEN \
+  -Dsonar.exclusions=**/node_modules/**,**/coverage/**,**/dist/**,**/build/**,**/tests/**
+```
 
 ### File cấu hình: `sonar-project.properties`
 
 ```properties
-sonar.projectKey=fastfood-delivery-platform
+# Project identification
+sonar.projectKey=fastfood-delivery
 sonar.projectName=FastFood Delivery Platform
 sonar.projectVersion=1.0.0
 
+# SonarQube Server (Local)
+sonar.host.url=http://localhost:9000
+
 # Source directories
-sonar.sources=auth,order,restaurant,payment-service,notification-service,admin-service
+sonar.sources=auth,order,restaurant,payment-service,notification-service,admin-service,food-delivery-server
 
 # Exclusions
-sonar.exclusions=**/node_modules/**,**/coverage/**,**/dist/**,**/*.test.js
+sonar.exclusions=**/node_modules/**,**/coverage/**,**/dist/**,**/build/**,**/tests/**
 
 # Coverage
-sonar.javascript.lcov.reportPaths=auth/coverage/lcov.info,order/coverage/lcov.info
+sonar.javascript.lcov.reportPaths=auth/coverage/lcov.info,order/coverage/lcov.info,restaurant/coverage/lcov.info,admin-service/coverage/lcov.info
 
 # Quality Gate
 sonar.qualitygate.wait=true
 ```
+
+### Thêm Secrets vào GitHub (cho CI/CD)
+
+1. GitHub Repo → Settings → Secrets and variables → Actions
+2. Thêm secrets:
+   - `SONAR_TOKEN`: Token từ SonarQube
+   - `SONAR_HOST_URL`: `http://your-sonarqube-server:9000`
 
 ### Quality Gates mặc định
 
@@ -221,9 +254,9 @@ sonar.qualitygate.wait=true
 
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│    Lint     │────▶│ Unit Tests  │────▶│ SonarCloud  │
+│    Lint     │────▶│ Unit Tests  │────▶│  SonarQube  │
 │ ESLint +    │     │   Jest +    │     │  Analysis   │
-│  Prettier   │     │  Coverage   │     │             │
+│  Prettier   │     │  Coverage   │     │(self-hosted)│
 └─────────────┘     └─────────────┘     └─────────────┘
 ```
 
@@ -242,16 +275,31 @@ lint:
       run: npx prettier --check . || echo "Formatting issues found"
 ```
 
-### SonarCloud Job
+### SonarQube Job (Self-Hosted Runner)
 
 ```yaml
-sonarcloud:
+sonarqube:
+  runs-on: self-hosted  # Requires self-hosted runner
   needs: [lint, unit-tests]
+  if: contains(github.event.head_commit.message, '[sonar]')
   steps:
-    - name: SonarCloud Scan
-      uses: SonarSource/sonarcloud-github-action@master
+    - name: SonarQube Scan
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      run: |
+        sonar-scanner \
+          -Dsonar.projectKey=fastfood-delivery \
+          -Dsonar.host.url=$SONAR_HOST_URL \
+          -Dsonar.login=$SONAR_TOKEN
+```
+
+### Trigger SonarQube trong CI/CD
+
+Thêm `[sonar]` vào commit message để trigger scan:
+
+```bash
+git commit -m "feat: add new feature [sonar]"
 ```
 
 ---
@@ -347,11 +395,25 @@ Thêm config:
 }
 ```
 
-### SonarCloud không nhận coverage
+### SonarQube không nhận coverage
 
 1. Kiểm tra path trong `sonar-project.properties`
 2. Đảm bảo file `lcov.info` tồn tại
-3. Check logs trong SonarCloud dashboard
+3. Check logs trong SonarQube dashboard
+
+### SonarQube container không khởi động
+
+```bash
+# Kiểm tra logs
+docker logs sonarqube
+
+# Restart container
+docker restart sonarqube
+
+# Xóa và tạo lại
+docker rm -f sonarqube
+docker run -d --name sonarqube -p 9000:9000 sonarqube:lts-community
+```
 
 ### CI/CD fail
 
@@ -365,9 +427,10 @@ Thêm config:
 
 - [ESLint Docs](https://eslint.org/docs/latest/)
 - [Prettier Docs](https://prettier.io/docs/en/index.html)
-- [SonarCloud Docs](https://docs.sonarcloud.io/)
+- [SonarQube Docs](https://docs.sonarsource.com/sonarqube/latest/)
 - [GitHub Actions](https://docs.github.com/en/actions)
+- [Self-Hosted Runners](https://docs.github.com/en/actions/hosting-your-own-runners)
 
 ---
 
-**Cập nhật lần cuối:** $(date +%Y-%m-%d)
+**Cập nhật lần cuối:** 2024-12-04
