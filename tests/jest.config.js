@@ -54,7 +54,10 @@ module.exports = {
       outputDirectory: '<rootDir>/test-reports',
       outputName: 'junit.xml',
       classNameTemplate: '{classname}',
-      titleTemplate: '{title}'
+      titleTemplate: '{title}',
+      ancestorSeparator: ' › ',
+      usePathForSuiteName: true,
+      suiteName: 'FastFood Delivery Tests'
     }]
   ],
   
