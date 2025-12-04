@@ -117,7 +117,7 @@ scrape_configs:
   # Test Metrics Exporter - Test results monitoring
   - job_name: 'test-metrics'
     static_configs:
-      - targets: ['test-metrics-exporter:9091']
+      - targets: ['test-metrics:9091']
     metrics_path: /metrics
     scheme: http
     scrape_interval: 30s

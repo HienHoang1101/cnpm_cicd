@@ -134,6 +134,58 @@ jobs:
           if-no-files-found: warn
         if: always()
 
+      - name: 📡 Send Test Results to Cloud Monitoring
+        if: always()
+        run: |
+          # Parse test results from Jest JSON output
+          REPORT_FILE="${{ matrix.service }}/reports/test-results.json"
+          
+          if [ -f "$REPORT_FILE" ]; then
+            TOTAL=$(jq -r '.numTotalTests // 0' "$REPORT_FILE")
+            PASSED=$(jq -r '.numPassedTests // 0' "$REPORT_FILE")
+            FAILED=$(jq -r '.numFailedTests // 0' "$REPORT_FILE")
+            SKIPPED=$(jq -r '.numPendingTests // 0' "$REPORT_FILE")
+          else
+            # Fallback: parse from test output
+            TOTAL=0
+            PASSED=0
+            FAILED=0
+            SKIPPED=0
+          fi
+          
+          # Parse coverage if available
+          COVERAGE=0
+          if [ -f "${{ matrix.service }}/coverage/coverage-summary.json" ]; then
+            COVERAGE=$(jq -r '.total.lines.pct // 0' "${{ matrix.service }}/coverage/coverage-summary.json")
+          fi
+          
+          echo "📊 Test Results for ${{ matrix.service }}:"
+          echo "   Total: $TOTAL, Passed: $PASSED, Failed: $FAILED, Skipped: $SKIPPED"
+          echo "   Coverage: $COVERAGE%"
+          
+          # Send to cloud monitoring (if available)
+          METRICS_URL="${{ secrets.TEST_METRICS_URL }}"
+          if [ -n "$METRICS_URL" ]; then
+            curl -X POST "$METRICS_URL/api/report" \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"service\": \"${{ matrix.service }}\",
+                \"results\": {
+                  \"total\": $TOTAL,
+                  \"passed\": $PASSED,
+                  \"failed\": $FAILED,
+                  \"skipped\": $SKIPPED
+                },
+                \"coverage\": $COVERAGE,
+                \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
+                \"commit\": \"${{ github.sha }}\",
+                \"branch\": \"${{ github.ref_name }}\"
+              }" || echo "⚠️ Failed to send metrics to cloud"
+          else
+            echo "ℹ️ TEST_METRICS_URL not configured, skipping cloud metrics"
+          fi
+        continue-on-error: true
+
       - name: 📈 Upload Coverage to Codecov
         uses: codecov/codecov-action@v3
         with:

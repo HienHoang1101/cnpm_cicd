@@ -1,0 +1,129 @@
+# Test Metrics Exporter Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-metrics-exporter
+  namespace: monitoring
+  labels:
+    app: test-metrics-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test-metrics-exporter
+  template:
+    metadata:
+      labels:
+        app: test-metrics-exporter
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9091"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: test-metrics-exporter
+          image: node:18-alpine
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 9091
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              apk add --no-cache wget && \
+              mkdir -p /app && cd /app && \
+              cat > package.json << 'EOF'
+              {"name":"test-metrics-exporter","version":"1.0.0","main":"server.js","dependencies":{"express":"^4.18.2"}}
+              EOF
+              cat > server.js << 'EOF'
+              const express = require('express');
+              const app = express();
+              app.use(express.json());
+              
+              let testMetrics = {
+                lastRun: null,
+                summary: { total: 0, passed: 0, failed: 0, skipped: 0, coverage: 0 },
+                services: {}
+              };
+              
+              app.get('/health', (req, res) => res.json({ status: 'healthy' }));
+              
+              app.post('/api/report', (req, res) => {
+                const data = req.body;
+                testMetrics.lastRun = new Date().toISOString();
+                if (data.service && data.results) {
+                  testMetrics.services[data.service] = data.results;
+                  let total = 0, passed = 0, failed = 0, skipped = 0;
+                  Object.values(testMetrics.services).forEach(s => {
+                    total += s.total || 0;
+                    passed += s.passed || 0;
+                    failed += s.failed || 0;
+                    skipped += s.skipped || 0;
+                  });
+                  testMetrics.summary = { total, passed, failed, skipped, coverage: data.coverage || 0 };
+                }
+                res.json({ success: true });
+              });
+              
+              app.get('/metrics', (req, res) => {
+                const s = testMetrics.summary;
+                const passRate = s.total > 0 ? (s.passed / s.total * 100).toFixed(2) : 0;
+                let metrics = `# HELP test_total Total number of tests\n# TYPE test_total gauge\ntest_total ${s.total}\n`;
+                metrics += `# HELP test_passed Number of passed tests\n# TYPE test_passed gauge\ntest_passed ${s.passed}\n`;
+                metrics += `# HELP test_failed Number of failed tests\n# TYPE test_failed gauge\ntest_failed ${s.failed}\n`;
+                metrics += `# HELP test_skipped Number of skipped tests\n# TYPE test_skipped gauge\ntest_skipped ${s.skipped}\n`;
+                metrics += `# HELP test_pass_rate Test pass rate percentage\n# TYPE test_pass_rate gauge\ntest_pass_rate ${passRate}\n`;
+                metrics += `# HELP test_coverage_percent Code coverage percentage\n# TYPE test_coverage_percent gauge\ntest_coverage_percent ${s.coverage}\n`;
+                Object.entries(testMetrics.services).forEach(([svc, r]) => {
+                  metrics += `test_service_total{service="${svc}"} ${r.total || 0}\n`;
+                  metrics += `test_service_passed{service="${svc}"} ${r.passed || 0}\n`;
+                  metrics += `test_service_failed{service="${svc}"} ${r.failed || 0}\n`;
+                });
+                res.set('Content-Type', 'text/plain');
+                res.send(metrics);
+              });
+              
+              app.listen(9091, () => console.log('Test metrics exporter running on port 9091'));
+              EOF
+              npm install && node server.js
+          env:
+            - name: PORT
+              value: "9091"
+            - name: NODE_ENV
+              value: "production"
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 9091
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 9091
+            initialDelaySeconds: 30
+            periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: test-metrics-exporter
+  namespace: monitoring
+  labels:
+    app: test-metrics-exporter
+    monitoring: enabled
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9091
+      targetPort: 9091
+      name: metrics
+  selector:
+    app: test-metrics-exporter

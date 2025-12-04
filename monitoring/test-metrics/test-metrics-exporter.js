@@ -160,7 +160,10 @@ function loadAllReports() {
 
 // Prometheus metrics endpoint
 app.get('/metrics', (req, res) => {
-  loadAllReports();
+  // Only load from files if no data from POST API
+  if (Object.keys(testMetrics.services).length === 0) {
+    loadAllReports();
+  }
   
   let metrics = '';
   
@@ -241,7 +244,10 @@ app.get('/metrics', (req, res) => {
 
 // JSON endpoint for detailed results
 app.get('/api/test-results', (req, res) => {
-  loadAllReports();
+  // Only load from files if no data from POST API
+  if (Object.keys(testMetrics.services).length === 0) {
+    loadAllReports();
+  }
   res.json(testMetrics);
 });
 
@@ -262,18 +268,36 @@ app.post('/api/report', (req, res) => {
     };
     
     // Recalculate summary
-    let total = 0, passed = 0, failed = 0, skipped = 0;
+    let total = 0, passed = 0, failed = 0, skipped = 0, duration = 0;
     Object.values(testMetrics.services).forEach(s => {
       total += s.numTotalTests || 0;
       passed += s.numPassedTests || 0;
       failed += s.numFailedTests || 0;
       skipped += s.numPendingTests || 0;
+      duration += s.duration || 0;
     });
     
-    testMetrics.summary = { total, passed, failed, skipped };
+    testMetrics.summary = { 
+      total, 
+      passed, 
+      failed, 
+      skipped,
+      duration,
+      coverage: testMetrics.summary.coverage || 0,
+      coverageDetails: testMetrics.summary.coverageDetails
+    };
     testMetrics.lastRun = new Date().toISOString();
     
-    res.json({ success: true, message: 'Report received' });
+    // Add to history
+    testMetrics.history.push({
+      timestamp: testMetrics.lastRun,
+      summary: { ...testMetrics.summary }
+    });
+    if (testMetrics.history.length > 100) {
+      testMetrics.history.shift();
+    }
+    
+    res.json({ success: true, message: 'Report received', summary: testMetrics.summary });
   } else {
     res.status(400).json({ error: 'Invalid report format' });
   }
