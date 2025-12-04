@@ -161,7 +161,7 @@ const refreshToken = async (req, res) => {
   try {
     const refreshToken = req.body.refreshToken;
 
-    console.log("Refresh token received:", refreshToken);
+    // Security: Don't log sensitive tokens
     if (!refreshToken) {
       return res.status(401).json({
         success: false,
@@ -169,10 +169,12 @@ const refreshToken = async (req, res) => {
       });
     }
 
-    const decoded = jwt.verify(
-      refreshToken,
-      process.env.JWT_REFRESH_SECRET || "jwt-refresh-secret-key-develop-only"
-    );
+    // Security: JWT_REFRESH_SECRET must be set in environment
+    if (!process.env.JWT_REFRESH_SECRET) {
+      console.error('CRITICAL: JWT_REFRESH_SECRET not configured');
+      return res.status(500).json({ success: false, message: 'Server configuration error' });
+    }
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
 
     console.log(decoded.id);
     const user = await User.findOne({
@@ -309,17 +311,24 @@ const forgotPassword = async (req, res) => {
       "host"
     )}/api/auth/reset-password/${resetToken}`;
 
-    res.status(200).json({
+    // Security: Only include resetUrl in development
+    const response = {
       success: true,
       message: "Password reset link sent to your email",
-      resetUrl, // Remove this in production, just return message
-    });
+    };
+    
+    if (process.env.NODE_ENV !== 'production') {
+      response.resetUrl = resetUrl; // Only for development/testing
+    }
+
+    res.status(200).json(response);
   } catch (error) {
     console.error("Forgot password error:", error);
     res.status(500).json({
       success: false,
       message: "Error processing password reset request",
-      error: error.message,
+      // Security: Don't expose error details in production
+      error: process.env.NODE_ENV !== 'production' ? error.message : undefined,
     });
   }
 };

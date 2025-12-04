@@ -23,10 +23,12 @@ const protect = async (req, res, next) => {
     }
 
     try {
-      const decoded = jwt.verify(
-        token,
-        process.env.JWT_SECRET || "jwt-secret-key-develop-only"
-      );
+      // Security: JWT_SECRET must be set in environment
+      if (!process.env.JWT_SECRET) {
+        console.error('CRITICAL: JWT_SECRET not configured');
+        return res.status(500).json({ success: false, message: 'Server configuration error' });
+      }
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
       const user = await User.findById(decoded.id);
 
