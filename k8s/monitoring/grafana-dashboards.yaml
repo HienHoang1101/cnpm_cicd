@@ -131,18 +131,106 @@ data:
           "targets": [{"expr": "test_service_failed", "legendFormat": "{{service}}", "refId": "A"}],
           "title": "❌ Failed Tests by Service",
           "type": "bargauge"
+        },
+        {
+          "collapsed": false,
+          "gridPos": {"h": 1, "w": 24, "x": 0, "y": 22},
+          "id": 20,
+          "panels": [],
+          "title": "🔍 SonarCloud Code Quality",
+          "type": "row"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}, {"color": "red", "value": 5}]}}},
+          "gridPos": {"h": 5, "w": 4, "x": 0, "y": 23},
+          "id": 11,
+          "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+          "targets": [{"expr": "sonar_bugs", "legendFormat": "Bugs", "refId": "A"}],
+          "title": "🐛 Bugs",
+          "type": "stat"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 1}, {"color": "red", "value": 3}]}}},
+          "gridPos": {"h": 5, "w": 4, "x": 4, "y": 23},
+          "id": 12,
+          "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+          "targets": [{"expr": "sonar_vulnerabilities", "legendFormat": "Vulnerabilities", "refId": "A"}],
+          "title": "🔓 Vulnerabilities",
+          "type": "stat"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 50}, {"color": "orange", "value": 100}]}}},
+          "gridPos": {"h": 5, "w": 4, "x": 8, "y": 23},
+          "id": 13,
+          "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+          "targets": [{"expr": "sonar_code_smells", "legendFormat": "Code Smells", "refId": "A"}],
+          "title": "🔧 Code Smells",
+          "type": "stat"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "yellow", "value": 60}, {"color": "green", "value": 80}]}, "unit": "percent"}},
+          "gridPos": {"h": 5, "w": 4, "x": 12, "y": 23},
+          "id": 14,
+          "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+          "targets": [{"expr": "sonar_coverage", "legendFormat": "Coverage", "refId": "A"}],
+          "title": "📊 Sonar Coverage",
+          "type": "stat"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 5}, {"color": "red", "value": 10}]}, "unit": "percent"}},
+          "gridPos": {"h": 5, "w": 4, "x": 16, "y": 23},
+          "id": 15,
+          "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+          "targets": [{"expr": "sonar_duplications", "legendFormat": "Duplications", "refId": "A"}],
+          "title": "📋 Duplications",
+          "type": "stat"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "blue"}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "blue", "value": null}]}}},
+          "gridPos": {"h": 5, "w": 4, "x": 20, "y": 23},
+          "id": 16,
+          "options": {"colorMode": "value", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+          "targets": [{"expr": "sonar_lines_of_code", "legendFormat": "LOC", "refId": "A"}],
+          "title": "📝 Lines of Code",
+          "type": "stat"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 10, "gradientMode": "none", "hideFrom": {"legend": false, "tooltip": false, "viz": false}, "lineInterpolation": "linear", "lineWidth": 2, "pointSize": 5, "scaleDistribution": {"type": "linear"}, "showPoints": "auto", "spanNulls": false, "stacking": {"group": "A", "mode": "none"}, "thresholdsStyle": {"mode": "off"}}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}}},
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 28},
+          "id": 17,
+          "options": {"legend": {"calcs": ["lastNotNull", "mean"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi", "sort": "none"}},
+          "targets": [{"expr": "sonar_bugs", "legendFormat": "Bugs", "refId": "A"}, {"expr": "sonar_vulnerabilities", "legendFormat": "Vulnerabilities", "refId": "B"}, {"expr": "sonar_code_smells / 10", "legendFormat": "Code Smells (÷10)", "refId": "C"}],
+          "title": "📈 SonarCloud Issues Trend",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"axisCenteredZero": false, "axisColorMode": "text", "axisLabel": "", "axisPlacement": "auto", "barAlignment": 0, "drawStyle": "line", "fillOpacity": 10, "gradientMode": "none", "hideFrom": {"legend": false, "tooltip": false, "viz": false}, "lineInterpolation": "linear", "lineWidth": 2, "pointSize": 5, "scaleDistribution": {"type": "linear"}, "showPoints": "auto", "spanNulls": false, "stacking": {"group": "A", "mode": "none"}, "thresholdsStyle": {"mode": "off"}}, "mappings": [], "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}, "unit": "percent"}},
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 28},
+          "id": 18,
+          "options": {"legend": {"calcs": ["lastNotNull", "mean"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi", "sort": "none"}},
+          "targets": [{"expr": "sonar_coverage", "legendFormat": "Coverage", "refId": "A"}, {"expr": "sonar_duplications", "legendFormat": "Duplications", "refId": "B"}],
+          "title": "📊 Coverage & Duplications Trend",
+          "type": "timeseries"
         }
       ],
       "refresh": "30s",
       "schemaVersion": 38,
       "style": "dark",
-      "tags": ["testing", "ci-cd", "fastfood"],
+      "tags": ["testing", "ci-cd", "fastfood", "sonarcloud"],
       "templating": {"list": []},
       "time": {"from": "now-24h", "to": "now"},
       "timepicker": {},
       "timezone": "",
-      "title": "🧪 FastFood Test Monitoring Dashboard",
+      "title": "🧪 FastFood Test & Code Quality Dashboard",
       "uid": "fastfood-test-monitoring",
-      "version": 1,
+      "version": 2,
       "weekStart": ""
     }

@@ -499,22 +499,15 @@ jobs:
           category: "/language:javascript"
 
   # ========================================
-  # JOB 6c: SonarQube Analysis (Self-Hosted)
+  # JOB 6c: SonarCloud Analysis
   # ========================================
-  # NOTE: This job requires a self-hosted runner with access to SonarQube server
-  # For GitHub-hosted runners, use SonarCloud instead
-  # 
-  # Setup requirements:
-  # 1. Self-hosted runner with Docker installed
-  # 2. SonarQube server running (docker run -d -p 9000:9000 sonarqube:lts-community)
-  # 3. Add SONAR_TOKEN and SONAR_HOST_URL secrets to repository
+  # SonarCloud provides free code analysis for public repositories
+  # Dashboard: https://sonarcloud.io/project/overview?id=HienHoang1101_cnpm_cicd
   #
-  sonarqube:
-    name: 🔍 SonarQube Code Analysis
-    runs-on: self-hosted  # Requires self-hosted runner
+  sonarcloud:
+    name: 🔍 SonarCloud Code Analysis
+    runs-on: ubuntu-latest
     needs: [lint, unit-tests]
-    # Skip if running on GitHub-hosted runners (no access to local SonarQube)
-    if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[sonar]') }}
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -526,79 +519,102 @@ jobs:
         with:
           node-version: '20'
 
-      - name: 📥 Download Test Coverage (Auth)
+      - name: 📥 Download Test Coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: test-results
+          path: tests/
+        continue-on-error: true
+
+      - name: 📥 Download Coverage (Auth)
         uses: actions/download-artifact@v4
         with:
           name: unit-test-results-auth
           path: auth/
         continue-on-error: true
 
-      - name: 📥 Download Test Coverage (Order)
+      - name: 📥 Download Coverage (Order)
         uses: actions/download-artifact@v4
         with:
           name: unit-test-results-order
           path: order/
         continue-on-error: true
 
-      - name: 📥 Download Test Coverage (Restaurant)
+      - name: 📥 Download Coverage (Restaurant)
         uses: actions/download-artifact@v4
         with:
           name: unit-test-results-restaurant
           path: restaurant/
         continue-on-error: true
 
-      - name: 📥 Download Test Coverage (Admin)
+      - name: 📥 Download Coverage (Admin)
         uses: actions/download-artifact@v4
         with:
           name: unit-test-results-admin-service
           path: admin-service/
         continue-on-error: true
 
-      - name: 📦 Install SonarScanner
-        run: npm install -g sonar-scanner
+      - name: 🔍 SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=HienHoang1101_cnpm_cicd
+            -Dsonar.organization=hienhoang1101
 
-      - name: 🔍 SonarQube Scan
+      - name: 📊 SonarCloud Quality Gate
+        uses: sonarsource/sonarqube-quality-gate-action@master
+        timeout-minutes: 5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        shell: cmd
-        run: |
-          sonar-scanner -Dsonar.projectKey=fastfood-delivery -Dsonar.projectName="FastFood Delivery Platform" -Dsonar.sources=auth,order,restaurant,payment-service,notification-service,admin-service,food-delivery-server -Dsonar.host.url=http://localhost:9000 -Dsonar.login=%SONAR_TOKEN% -Dsonar.exclusions=**/node_modules/**,**/coverage/**,**/dist/**,**/build/**,**/tests/** -Dsonar.javascript.lcov.reportPaths=auth/coverage/lcov.info,order/coverage/lcov.info,restaurant/coverage/lcov.info,admin-service/coverage/lcov.info -Dsonar.qualitygate.wait=false -Dsonar.testExecutionReportPaths=
+        continue-on-error: true
 
-      - name: 📊 SonarQube Quality Gate
-        shell: cmd
+      - name: 📈 Send SonarCloud Metrics to Monitoring
+        if: always()
         run: |
-          echo ## SonarQube Analysis Complete >> %GITHUB_STEP_SUMMARY%
-          echo. >> %GITHUB_STEP_SUMMARY%
-          echo Quality Gate: PASSED >> %GITHUB_STEP_SUMMARY%
-
-  # ========================================
-  # JOB 6d: SonarQube Local (Manual Trigger)
-  # ========================================
-  sonarqube-local-instructions:
-    name: 📋 SonarQube Local Instructions
-    runs-on: ubuntu-latest
-    needs: [lint]
-    if: ${{ github.event_name == 'pull_request' }}
-    steps:
-      - name: 📋 Local SonarQube Instructions
-        run: |
-          echo "## 🔍 SonarQube Local Analysis" >> $GITHUB_STEP_SUMMARY
+          # Get SonarCloud metrics via API
+          METRICS=$(curl -s -u "${{ secrets.SONAR_TOKEN }}:" \
+            "https://sonarcloud.io/api/measures/component?component=HienHoang1101_cnpm_cicd&metricKeys=bugs,vulnerabilities,code_smells,coverage,duplicated_lines_density,ncloc" \
+            2>/dev/null || echo '{}')
+          
+          # Parse metrics
+          BUGS=$(echo "$METRICS" | jq -r '.component.measures[] | select(.metric=="bugs") | .value // "0"')
+          VULNERABILITIES=$(echo "$METRICS" | jq -r '.component.measures[] | select(.metric=="vulnerabilities") | .value // "0"')
+          CODE_SMELLS=$(echo "$METRICS" | jq -r '.component.measures[] | select(.metric=="code_smells") | .value // "0"')
+          COVERAGE=$(echo "$METRICS" | jq -r '.component.measures[] | select(.metric=="coverage") | .value // "0"')
+          DUPLICATIONS=$(echo "$METRICS" | jq -r '.component.measures[] | select(.metric=="duplicated_lines_density") | .value // "0"')
+          LINES=$(echo "$METRICS" | jq -r '.component.measures[] | select(.metric=="ncloc") | .value // "0"')
+          
+          # Send to Test Metrics Exporter
+          if [ -n "${{ secrets.TEST_METRICS_URL }}" ]; then
+            curl -X POST "${{ secrets.TEST_METRICS_URL }}/api/sonar" \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"bugs\": ${BUGS:-0},
+                \"vulnerabilities\": ${VULNERABILITIES:-0},
+                \"codeSmells\": ${CODE_SMELLS:-0},
+                \"coverage\": ${COVERAGE:-0},
+                \"duplications\": ${DUPLICATIONS:-0},
+                \"linesOfCode\": ${LINES:-0},
+                \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"
+              }" || true
+          fi
+          
+          # Summary
+          echo "## 🔍 SonarCloud Analysis Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "To run SonarQube analysis locally:" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🐛 Bugs | ${BUGS:-N/A} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔓 Vulnerabilities | ${VULNERABILITIES:-N/A} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔧 Code Smells | ${CODE_SMELLS:-N/A} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 📊 Coverage | ${COVERAGE:-N/A}% |" >> $GITHUB_STEP_SUMMARY
+          echo "| 📋 Duplications | ${DUPLICATIONS:-N/A}% |" >> $GITHUB_STEP_SUMMARY
+          echo "| 📝 Lines of Code | ${LINES:-N/A} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 1. Start SonarQube Server" >> $GITHUB_STEP_SUMMARY
-          echo '```bash' >> $GITHUB_STEP_SUMMARY
-          echo 'docker run -d --name sonarqube -p 9000:9000 sonarqube:lts-community' >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 2. Run Scanner" >> $GITHUB_STEP_SUMMARY
-          echo '```bash' >> $GITHUB_STEP_SUMMARY
-          echo 'npm install -g sonar-scanner' >> $GITHUB_STEP_SUMMARY
-          echo 'sonar-scanner -Dsonar.login=YOUR_TOKEN' >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "📖 See [CODE_QUALITY_GUIDE.md](docs/CODE_QUALITY_GUIDE.md) for details." >> $GITHUB_STEP_SUMMARY
+          echo "🔗 [View Full Report on SonarCloud](https://sonarcloud.io/project/overview?id=HienHoang1101_cnpm_cicd)" >> $GITHUB_STEP_SUMMARY
 
   # ========================================
   # JOB 7: DEPLOY TO STAGING

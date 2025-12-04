@@ -44,6 +44,16 @@ spec:
                 services: {}
               };
               
+              let sonarMetrics = {
+                lastRun: null,
+                bugs: 0,
+                vulnerabilities: 0,
+                codeSmells: 0,
+                coverage: 0,
+                duplications: 0,
+                linesOfCode: 0
+              };
+              
               app.get('/health', (req, res) => res.json({ status: 'healthy' }));
               
               app.post('/api/report', (req, res) => {
@@ -63,20 +73,49 @@ spec:
                 res.json({ success: true });
               });
               
+              app.post('/api/sonar', (req, res) => {
+                const data = req.body;
+                sonarMetrics = {
+                  lastRun: data.timestamp || new Date().toISOString(),
+                  bugs: parseInt(data.bugs) || 0,
+                  vulnerabilities: parseInt(data.vulnerabilities) || 0,
+                  codeSmells: parseInt(data.codeSmells) || 0,
+                  coverage: parseFloat(data.coverage) || 0,
+                  duplications: parseFloat(data.duplications) || 0,
+                  linesOfCode: parseInt(data.linesOfCode) || 0
+                };
+                console.log('SonarCloud metrics updated:', sonarMetrics);
+                res.json({ success: true });
+              });
+              
               app.get('/metrics', (req, res) => {
                 const s = testMetrics.summary;
                 const passRate = s.total > 0 ? (s.passed / s.total * 100).toFixed(2) : 0;
-                let metrics = `# HELP test_total Total number of tests\n# TYPE test_total gauge\ntest_total ${s.total}\n`;
-                metrics += `# HELP test_passed Number of passed tests\n# TYPE test_passed gauge\ntest_passed ${s.passed}\n`;
-                metrics += `# HELP test_failed Number of failed tests\n# TYPE test_failed gauge\ntest_failed ${s.failed}\n`;
-                metrics += `# HELP test_skipped Number of skipped tests\n# TYPE test_skipped gauge\ntest_skipped ${s.skipped}\n`;
-                metrics += `# HELP test_pass_rate Test pass rate percentage\n# TYPE test_pass_rate gauge\ntest_pass_rate ${passRate}\n`;
-                metrics += `# HELP test_coverage_percent Code coverage percentage\n# TYPE test_coverage_percent gauge\ntest_coverage_percent ${s.coverage}\n`;
+                let metrics = '';
+                
+                // Test metrics
+                metrics += '# HELP test_total Total number of tests\n# TYPE test_total gauge\ntest_total ' + s.total + '\n';
+                metrics += '# HELP test_passed Number of passed tests\n# TYPE test_passed gauge\ntest_passed ' + s.passed + '\n';
+                metrics += '# HELP test_failed Number of failed tests\n# TYPE test_failed gauge\ntest_failed ' + s.failed + '\n';
+                metrics += '# HELP test_skipped Number of skipped tests\n# TYPE test_skipped gauge\ntest_skipped ' + s.skipped + '\n';
+                metrics += '# HELP test_pass_rate Test pass rate percentage\n# TYPE test_pass_rate gauge\ntest_pass_rate ' + passRate + '\n';
+                metrics += '# HELP test_coverage_percent Code coverage percentage\n# TYPE test_coverage_percent gauge\ntest_coverage_percent ' + s.coverage + '\n';
+                
+                // Service-level test metrics
                 Object.entries(testMetrics.services).forEach(([svc, r]) => {
-                  metrics += `test_service_total{service="${svc}"} ${r.total || 0}\n`;
-                  metrics += `test_service_passed{service="${svc}"} ${r.passed || 0}\n`;
-                  metrics += `test_service_failed{service="${svc}"} ${r.failed || 0}\n`;
+                  metrics += 'test_service_total{service="' + svc + '"} ' + (r.total || 0) + '\n';
+                  metrics += 'test_service_passed{service="' + svc + '"} ' + (r.passed || 0) + '\n';
+                  metrics += 'test_service_failed{service="' + svc + '"} ' + (r.failed || 0) + '\n';
                 });
+                
+                // SonarCloud metrics
+                metrics += '\n# HELP sonar_bugs Number of bugs from SonarCloud\n# TYPE sonar_bugs gauge\nsonar_bugs ' + sonarMetrics.bugs + '\n';
+                metrics += '# HELP sonar_vulnerabilities Number of vulnerabilities from SonarCloud\n# TYPE sonar_vulnerabilities gauge\nsonar_vulnerabilities ' + sonarMetrics.vulnerabilities + '\n';
+                metrics += '# HELP sonar_code_smells Number of code smells from SonarCloud\n# TYPE sonar_code_smells gauge\nsonar_code_smells ' + sonarMetrics.codeSmells + '\n';
+                metrics += '# HELP sonar_coverage Code coverage percentage from SonarCloud\n# TYPE sonar_coverage gauge\nsonar_coverage ' + sonarMetrics.coverage + '\n';
+                metrics += '# HELP sonar_duplications Duplicated lines percentage from SonarCloud\n# TYPE sonar_duplications gauge\nsonar_duplications ' + sonarMetrics.duplications + '\n';
+                metrics += '# HELP sonar_lines_of_code Total lines of code from SonarCloud\n# TYPE sonar_lines_of_code gauge\nsonar_lines_of_code ' + sonarMetrics.linesOfCode + '\n';
+                
                 res.set('Content-Type', 'text/plain');
                 res.send(metrics);
               });
