@@ -54,7 +54,36 @@ spec:
                 linesOfCode: 0
               };
               
+              // Application metrics (login, requests, users)
+              let appMetrics = {
+                activeUsers: 0,
+                totalLogins: 0,
+                totalRequests: 0,
+                requestsPerService: {},
+                loginHistory: [],
+                responseTimeAvg: 0
+              };
+              
               app.get('/health', (req, res) => res.json({ status: 'healthy' }));
+              
+              // Endpoint để nhận app metrics
+              app.post('/api/app-metrics', (req, res) => {
+                const data = req.body;
+                if (data.activeUsers !== undefined) appMetrics.activeUsers = data.activeUsers;
+                if (data.logins) appMetrics.totalLogins += data.logins;
+                if (data.requests) appMetrics.totalRequests += data.requests;
+                if (data.service && data.requests) {
+                  appMetrics.requestsPerService[data.service] = (appMetrics.requestsPerService[data.service] || 0) + data.requests;
+                }
+                if (data.responseTime) appMetrics.responseTimeAvg = data.responseTime;
+                res.json({ success: true, current: appMetrics });
+              });
+              
+              // Reset metrics
+              app.post('/api/app-metrics/reset', (req, res) => {
+                appMetrics = { activeUsers: 0, totalLogins: 0, totalRequests: 0, requestsPerService: {}, loginHistory: [], responseTimeAvg: 0 };
+                res.json({ success: true, message: 'Metrics reset' });
+              });
               
               app.post('/api/report', (req, res) => {
                 const data = req.body;
@@ -115,6 +144,17 @@ spec:
                 metrics += '# HELP sonar_coverage Code coverage percentage from SonarCloud\n# TYPE sonar_coverage gauge\nsonar_coverage ' + sonarMetrics.coverage + '\n';
                 metrics += '# HELP sonar_duplications Duplicated lines percentage from SonarCloud\n# TYPE sonar_duplications gauge\nsonar_duplications ' + sonarMetrics.duplications + '\n';
                 metrics += '# HELP sonar_lines_of_code Total lines of code from SonarCloud\n# TYPE sonar_lines_of_code gauge\nsonar_lines_of_code ' + sonarMetrics.linesOfCode + '\n';
+                
+                // Application metrics
+                metrics += '\n# HELP app_active_users Number of currently active users\n# TYPE app_active_users gauge\napp_active_users ' + appMetrics.activeUsers + '\n';
+                metrics += '# HELP app_total_logins Total number of logins\n# TYPE app_total_logins counter\napp_total_logins ' + appMetrics.totalLogins + '\n';
+                metrics += '# HELP app_total_requests Total number of API requests\n# TYPE app_total_requests counter\napp_total_requests ' + appMetrics.totalRequests + '\n';
+                metrics += '# HELP app_response_time_avg Average response time in ms\n# TYPE app_response_time_avg gauge\napp_response_time_avg ' + appMetrics.responseTimeAvg + '\n';
+                
+                // Requests per service
+                Object.entries(appMetrics.requestsPerService).forEach(([svc, count]) => {
+                  metrics += 'app_requests_per_service{service="' + svc + '"} ' + count + '\n';
+                });
                 
                 res.set('Content-Type', 'text/plain');
                 res.send(metrics);
