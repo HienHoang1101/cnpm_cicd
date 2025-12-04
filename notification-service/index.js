@@ -16,9 +16,22 @@ connectDB();
 // Middleware
 app.use(express.json());
 
+// Security: Configure CORS properly
+const allowedOrigins = process.env.CORS_ORIGINS 
+  ? process.env.CORS_ORIGINS.split(',') 
+  : ['http://localhost:3000', 'http://localhost:5173'];
+
 app.use(
   cors({
-    origin: "*",
+    origin: function(origin, callback) {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
   })
 );
 

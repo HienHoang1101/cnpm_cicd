@@ -70,8 +70,13 @@ const validateNewPasswordInput = (req, res, next) => {
     errors.password = "New password is required";
   }
 
-  if (password && password.length < 6) {
-    errors.password = "Password must be at least 6 characters";
+  // Security: Strong password policy
+  if (password && password.length < 8) {
+    errors.password = "Password must be at least 8 characters";
+  }
+  
+  if (password && !/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/.test(password)) {
+    errors.password = "Password must include uppercase, lowercase, number, and special character";
   }
 
   if (confirmPassword && password !== confirmPassword) {

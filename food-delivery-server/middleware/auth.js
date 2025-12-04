@@ -26,10 +26,16 @@ const protect = async (req, res, next) => {
   }
 
   try {
+    // Security: JWT_SECRET must be set in environment
+    if (!process.env.JWT_SECRET) {
+      console.error('CRITICAL: JWT_SECRET not configured');
+      return res.status(500).json({ success: false, message: 'Server configuration error' });
+    }
+    
     // Verify token using the SHARED JWT_SECRET
     const decoded = jwt.verify(
       token, 
-      process.env.JWT_SECRET // Same as auth-service
+      process.env.JWT_SECRET
     );
 
     // Optional: Validate token with auth-service (microservice communication)

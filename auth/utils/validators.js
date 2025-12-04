@@ -10,12 +10,13 @@ const isValidEmail = (email) => {
 
 /**
  * Password validation
- * Requires at least 6 characters, one uppercase, one lowercase, one number
+ * Security: Requires at least 8 characters, one uppercase, one lowercase, one number, one special char
  * @param {string} password - Password to validate
  * @returns {boolean} - True if password is valid
  */
 const isValidPassword = (password) => {
-  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
+  // Minimum 8 chars, at least: 1 uppercase, 1 lowercase, 1 number, 1 special char
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
   return passwordRegex.test(password);
 };
 
@@ -62,7 +63,7 @@ const validateRegistration = (userData) => {
   // Password validation
   if (userData.password && !isValidPassword(userData.password)) {
     errors.password =
-      "Password must be at least 6 characters long and include uppercase, lowercase, and number";
+      "Password must be at least 8 characters with uppercase, lowercase, number, and special character (@$!%*?&)";
   }
 
   // Phone validation
