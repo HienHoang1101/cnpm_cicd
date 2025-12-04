@@ -1,0 +1,16 @@
+{
+  "name": "test-metrics-exporter",
+  "version": "1.0.0",
+  "description": "Prometheus exporter for test results and coverage metrics",
+  "main": "test-metrics-exporter.js",
+  "scripts": {
+    "start": "node test-metrics-exporter.js",
+    "dev": "nodemon test-metrics-exporter.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

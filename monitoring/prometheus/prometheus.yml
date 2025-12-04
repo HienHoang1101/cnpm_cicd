@@ -18,6 +18,7 @@ alerting:
 # Load rules once and periodically evaluate them
 rule_files:
   - /etc/prometheus/alert.rules.yml
+  - /etc/prometheus/rules/test-alerts.yml
 
 # Scrape configurations
 scrape_configs:
@@ -112,3 +113,11 @@ scrape_configs:
         target_label: instance
       - target_label: __address__
         replacement: blackbox-exporter:9115
+
+  # Test Metrics Exporter - Test results monitoring
+  - job_name: 'test-metrics'
+    static_configs:
+      - targets: ['test-metrics-exporter:9091']
+    metrics_path: /metrics
+    scheme: http
+    scrape_interval: 30s

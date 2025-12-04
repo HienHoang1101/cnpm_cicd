@@ -1,0 +1,326 @@
+# Test Monitoring Workflow
+# Runs tests and exports results to monitoring dashboard
+
+name: Test & Monitor
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Run tests every 6 hours
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+env:
+  NODE_ENV: test
+
+jobs:
+  test-auth:
+    name: 🔐 Auth Service Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: auth/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: ./auth
+        run: npm ci
+      
+      - name: Run tests with coverage
+        working-directory: ./auth
+        run: |
+          npm test -- --coverage --json --outputFile=../test-reports/auth-results.json
+        env:
+          SERVICE_NAME: auth
+          MONGO_URI: mongodb://localhost:27017/test
+          JWT_SECRET: test-secret
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: auth-test-results
+          path: test-reports/
+          retention-days: 30
+
+  test-order:
+    name: 📦 Order Service Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: order/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: ./order
+        run: npm ci
+      
+      - name: Run tests with coverage
+        working-directory: ./order
+        run: |
+          npm test -- --coverage --json --outputFile=../test-reports/order-results.json
+        env:
+          SERVICE_NAME: order
+          MONGO_URI: mongodb://localhost:27017/test
+          JWT_SECRET: test-secret
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: order-test-results
+          path: test-reports/
+          retention-days: 30
+
+  test-restaurant:
+    name: 🍔 Restaurant Service Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: restaurant/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: ./restaurant
+        run: npm ci
+      
+      - name: Run tests with coverage
+        working-directory: ./restaurant
+        run: |
+          npm test -- --coverage --json --outputFile=../test-reports/restaurant-results.json
+        env:
+          SERVICE_NAME: restaurant
+          MONGO_URI: mongodb://localhost:27017/test
+          JWT_SECRET: test-secret
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: restaurant-test-results
+          path: test-reports/
+          retention-days: 30
+
+  test-payment:
+    name: 💳 Payment Service Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: payment-service/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: ./payment-service
+        run: npm ci
+      
+      - name: Run tests with coverage
+        working-directory: ./payment-service
+        run: |
+          npm test -- --coverage --json --outputFile=../test-reports/payment-results.json || true
+        env:
+          SERVICE_NAME: payment
+          MONGO_URI: mongodb://localhost:27017/test
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: payment-test-results
+          path: test-reports/
+          retention-days: 30
+
+  test-notification:
+    name: 🔔 Notification Service Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: notification-service/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: ./notification-service
+        run: npm ci
+      
+      - name: Run tests with coverage
+        working-directory: ./notification-service
+        run: |
+          npm test -- --coverage --json --outputFile=../test-reports/notification-results.json || true
+        env:
+          SERVICE_NAME: notification
+          MONGO_URI: mongodb://localhost:27017/test
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: notification-test-results
+          path: test-reports/
+          retention-days: 30
+
+  aggregate-results:
+    name: 📊 Aggregate Test Results
+    needs: [test-auth, test-order, test-restaurant, test-payment, test-notification]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download all test results
+        uses: actions/download-artifact@v4
+        with:
+          path: test-reports
+          merge-multiple: true
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Generate aggregated report
+        run: |
+          node << 'EOF'
+          const fs = require('fs');
+          const path = require('path');
+          
+          const reportsDir = './test-reports';
+          const services = ['auth', 'order', 'restaurant', 'payment', 'notification'];
+          
+          let summary = {
+            timestamp: new Date().toISOString(),
+            total: 0,
+            passed: 0,
+            failed: 0,
+            skipped: 0,
+            services: {}
+          };
+          
+          services.forEach(service => {
+            const reportPath = path.join(reportsDir, `${service}-results.json`);
+            if (fs.existsSync(reportPath)) {
+              try {
+                const data = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+                summary.services[service] = {
+                  total: data.numTotalTests || 0,
+                  passed: data.numPassedTests || 0,
+                  failed: data.numFailedTests || 0,
+                  skipped: data.numPendingTests || 0,
+                  success: data.success
+                };
+                summary.total += data.numTotalTests || 0;
+                summary.passed += data.numPassedTests || 0;
+                summary.failed += data.numFailedTests || 0;
+                summary.skipped += data.numPendingTests || 0;
+              } catch (e) {
+                console.error(`Error parsing ${service} results:`, e.message);
+              }
+            }
+          });
+          
+          summary.passRate = summary.total > 0 
+            ? ((summary.passed / summary.total) * 100).toFixed(2) 
+            : 0;
+          
+          fs.writeFileSync(
+            path.join(reportsDir, 'summary.json'),
+            JSON.stringify(summary, null, 2)
+          );
+          
+          console.log('═'.repeat(60));
+          console.log('📊 TEST SUMMARY REPORT');
+          console.log('═'.repeat(60));
+          console.log(`Total Tests: ${summary.total}`);
+          console.log(`Passed:      ${summary.passed} ✅`);
+          console.log(`Failed:      ${summary.failed} ${summary.failed > 0 ? '❌' : '✅'}`);
+          console.log(`Skipped:     ${summary.skipped}`);
+          console.log(`Pass Rate:   ${summary.passRate}%`);
+          console.log('═'.repeat(60));
+          
+          // Exit with error if tests failed
+          if (summary.failed > 0) {
+            process.exit(1);
+          }
+          EOF
+      
+      - name: Upload aggregated report
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-summary
+          path: test-reports/summary.json
+          retention-days: 90
+      
+      - name: Create test badge
+        if: always()
+        run: |
+          PASS_RATE=$(cat test-reports/summary.json | jq -r '.passRate')
+          TOTAL=$(cat test-reports/summary.json | jq -r '.total')
+          PASSED=$(cat test-reports/summary.json | jq -r '.passed')
+          
+          if (( $(echo "$PASS_RATE >= 90" | bc -l) )); then
+            COLOR="brightgreen"
+          elif (( $(echo "$PASS_RATE >= 70" | bc -l) )); then
+            COLOR="yellow"
+          else
+            COLOR="red"
+          fi
+          
+          echo "Test pass rate: ${PASS_RATE}%"
+          echo "Badge color: ${COLOR}"
+          echo "PASS_RATE=${PASS_RATE}" >> $GITHUB_OUTPUT
+          echo "COLOR=${COLOR}" >> $GITHUB_OUTPUT
+      
+      - name: Post to Slack (optional)
+        if: failure()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: |
+            ❌ Test failures detected!
+            Pass Rate: ${{ steps.badge.outputs.PASS_RATE }}%
+            See: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        continue-on-error: true
+
+  publish-metrics:
+    name: 📈 Publish to Monitoring
+    needs: aggregate-results
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Download summary
+        uses: actions/download-artifact@v4
+        with:
+          name: test-summary
+          path: ./
+      
+      - name: Send to monitoring (if available)
+        run: |
+          if [ -n "${{ secrets.METRICS_ENDPOINT }}" ]; then
+            curl -X POST "${{ secrets.METRICS_ENDPOINT }}/api/report" \
+              -H "Content-Type: application/json" \
+              -d @summary.json || echo "Failed to send metrics"
+          else
+            echo "No metrics endpoint configured, skipping..."
+          fi

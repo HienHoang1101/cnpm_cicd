@@ -1,0 +1,95 @@
+# Test Alerting Rules for Prometheus
+# Alerts when tests fail or coverage drops
+
+groups:
+  - name: test-alerts
+    interval: 30s
+    rules:
+      # Alert when any test fails
+      - alert: TestFailure
+        expr: test_failed > 0
+        for: 1m
+        labels:
+          severity: critical
+          category: testing
+        annotations:
+          summary: "❌ Test failures detected"
+          description: "{{ $value }} tests are failing. Check CI/CD pipeline for details."
+          runbook_url: "https://github.com/HienHoang1101/cnpm_cicd/actions"
+
+      # Alert when pass rate drops below 90%
+      - alert: LowTestPassRate
+        expr: test_pass_rate < 90
+        for: 5m
+        labels:
+          severity: warning
+          category: testing
+        annotations:
+          summary: "⚠️ Test pass rate below 90%"
+          description: "Current test pass rate is {{ $value }}%. Target is 90%+."
+
+      # Alert when pass rate drops below 70%
+      - alert: CriticalTestPassRate
+        expr: test_pass_rate < 70
+        for: 1m
+        labels:
+          severity: critical
+          category: testing
+        annotations:
+          summary: "🔴 Critical test pass rate"
+          description: "Test pass rate is critically low at {{ $value }}%."
+
+      # Alert when coverage drops below 60%
+      - alert: LowCodeCoverage
+        expr: test_coverage_percent < 60
+        for: 5m
+        labels:
+          severity: warning
+          category: testing
+        annotations:
+          summary: "⚠️ Code coverage below 60%"
+          description: "Current code coverage is {{ $value }}%. Target is 80%+."
+
+      # Alert when coverage drops below 40%
+      - alert: CriticalCodeCoverage
+        expr: test_coverage_percent < 40
+        for: 1m
+        labels:
+          severity: critical
+          category: testing
+        annotations:
+          summary: "🔴 Critical code coverage"
+          description: "Code coverage is critically low at {{ $value }}%."
+
+      # Alert when specific service has failing tests
+      - alert: ServiceTestFailure
+        expr: test_service_failed > 0
+        for: 1m
+        labels:
+          severity: warning
+          category: testing
+        annotations:
+          summary: "❌ Service {{ $labels.service }} has failing tests"
+          description: "{{ $value }} tests failing in {{ $labels.service }} service."
+
+      # Alert when no tests run (possible CI/CD issue)
+      - alert: NoTestsRunning
+        expr: test_total == 0
+        for: 10m
+        labels:
+          severity: warning
+          category: testing
+        annotations:
+          summary: "⚠️ No tests detected"
+          description: "No test results found. Check if CI/CD pipeline is running."
+
+      # Alert when test duration is too long
+      - alert: SlowTests
+        expr: test_duration_ms > 300000  # 5 minutes
+        for: 5m
+        labels:
+          severity: warning
+          category: testing
+        annotations:
+          summary: "🐌 Tests running slowly"
+          description: "Test suite taking {{ $value }}ms to complete. Consider optimization."
