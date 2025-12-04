@@ -137,16 +137,27 @@ jobs:
       - name: 📡 Send Test Results to Cloud Monitoring
         if: always()
         run: |
-          # Parse test results from Jest JSON output
-          REPORT_FILE="${{ matrix.service }}/reports/test-results.json"
+          # Parse test results from JUnit XML output
+          REPORT_FILE="${{ matrix.service }}/reports/junit.xml"
           
           if [ -f "$REPORT_FILE" ]; then
-            TOTAL=$(jq -r '.numTotalTests // 0' "$REPORT_FILE")
-            PASSED=$(jq -r '.numPassedTests // 0' "$REPORT_FILE")
-            FAILED=$(jq -r '.numFailedTests // 0' "$REPORT_FILE")
-            SKIPPED=$(jq -r '.numPendingTests // 0' "$REPORT_FILE")
+            # Parse JUnit XML using grep and sed (more reliable than xmllint)
+            TOTAL=$(grep -oP 'tests="\K[0-9]+' "$REPORT_FILE" | head -1 || echo "0")
+            FAILED=$(grep -oP 'failures="\K[0-9]+' "$REPORT_FILE" | head -1 || echo "0")
+            ERRORS=$(grep -oP 'errors="\K[0-9]+' "$REPORT_FILE" | head -1 || echo "0")
+            SKIPPED=$(grep -oP 'skipped="\K[0-9]+' "$REPORT_FILE" | head -1 || echo "0")
+            
+            # Handle empty values
+            TOTAL=${TOTAL:-0}
+            FAILED=${FAILED:-0}
+            ERRORS=${ERRORS:-0}
+            SKIPPED=${SKIPPED:-0}
+            
+            # Calculate passed = total - failed - errors - skipped
+            PASSED=$((TOTAL - FAILED - ERRORS - SKIPPED))
+            if [ $PASSED -lt 0 ]; then PASSED=0; fi
           else
-            # Fallback: parse from test output
+            # Fallback: no test results
             TOTAL=0
             PASSED=0
             FAILED=0
