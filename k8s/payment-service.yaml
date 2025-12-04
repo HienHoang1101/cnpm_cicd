@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: payment-service
-          image: fastfood/payment-service:latest
+          image: gcr.io/fastfood-cicd-2025/payment-service:v1
           imagePullPolicy: Always
           ports:
             - containerPort: 5005

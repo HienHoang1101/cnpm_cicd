@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: order-service
-          image: fastfood/order-service:latest
+          image: gcr.io/fastfood-cicd-2025/order-service:v1
           imagePullPolicy: Always
           ports:
             - containerPort: 5002

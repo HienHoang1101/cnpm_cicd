@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
         - name: auth-service
-          image: fastfood/auth-service:latest
+          image: gcr.io/fastfood-cicd-2025/auth-service:v1
           imagePullPolicy: Always
           ports:
             - containerPort: 5001

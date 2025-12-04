@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: restaurant-service
-          image: fastfood/restaurant-service:latest
+          image: gcr.io/fastfood-cicd-2025/restaurant-service:v1
           imagePullPolicy: Always
           ports:
             - containerPort: 5003
