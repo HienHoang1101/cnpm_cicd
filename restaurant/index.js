@@ -6,6 +6,7 @@ import { MONGOURL, PORT } from "./config.js";
 import dotenv from "dotenv";
 import Owner from "./routes/ResturantOwnerRoute.js";
 import Admin from "./routes/branchAdminRoute.js";
+import { setupSwagger } from "./swagger/swagger-setup.js";
 
 const app = express();
 dotenv.config();
@@ -39,6 +40,9 @@ global.gConfig = {
 app.use(express.json());
 app.use(BodyParser.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Setup Swagger API Documentation
+setupSwagger(app);
 
 app.use("/api", Owner);
 app.use("/api/branch", Admin);

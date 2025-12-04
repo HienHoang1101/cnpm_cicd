@@ -11,6 +11,7 @@ const app = express();
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import seedAdminUser from "./utils/seedAdmin.js";
+import { setupSwagger } from "./swagger/swagger-setup.js";
 
 app.use(express.json());
 app.use(cookieParser());
@@ -35,6 +36,10 @@ app.use(
   })
 );
 app.use(morgan("dev"));
+
+// Setup Swagger API Documentation
+setupSwagger(app);
+
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 

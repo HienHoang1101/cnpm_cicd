@@ -3,6 +3,7 @@ import cors from "cors";
 import express from "express";
 import mongoose from "mongoose";
 import paymentRoutes from "./routes/paymentRoutes.js";
+import { setupSwagger } from "./swagger/swagger-setup.js";
 
 dotenv.config();
 
@@ -49,6 +50,9 @@ mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.error("MongoDB connection error:", err));
+
+// Setup Swagger API Documentation
+setupSwagger(app);
 
 // Routes
 app.use("/api/payment", paymentRoutes);

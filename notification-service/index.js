@@ -4,6 +4,7 @@ import cors from "cors";
 import connectDB from "./config/db.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import { startRegistrationConsumer } from "./consumers/notificationConsumer.js";
+import { setupSwagger } from "./swagger/swagger-setup.js";
 
 // Load environment variables
 dotenv.config();
@@ -41,6 +42,9 @@ global.gConfig = {
   notification_url: process.env.NOTIFICATION_SERVICE_URL,
   order_url: process.env.ORDER_SERVICE_URL,
 };
+
+// Setup Swagger API Documentation
+setupSwagger(app);
 
 // Routes
 app.use("/api/notifications", notificationRoutes);

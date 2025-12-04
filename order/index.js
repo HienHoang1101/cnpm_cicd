@@ -8,6 +8,7 @@ import http from "http";
 import orderRoutes from "./routes/orderRoute.js";
 import cartRoutes from "./routes/cartRoute.js";
 import { setupWebSocket } from "./websocket.js";
+import { setupSwagger } from "./swagger/swagger-setup.js";
 
 dotenv.config();
 const app = express();
@@ -45,6 +46,9 @@ global.gConfig = {
   notification_url: process.env.NOTIFICATION_SERVICE_URL,
   admin_url: process.env.ADMIN_SERVICE_URL,
 };
+
+// Setup Swagger API Documentation
+setupSwagger(app);
 
 // Routes
 app.use("/api/orders/", orderRoutes);
