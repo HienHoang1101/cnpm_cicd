@@ -36,17 +36,18 @@ function Run-FailTest {
     # Gửi metrics - giả lập fail
     $body = @{
         service = "auth-service"
-        total = 5
-        passed = 0
-        failed = 5
-        duration = 1200
+        results = @{
+            total = 5
+            passed = 0
+            failed = 5
+        }
         coverage = 0
-        timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
-    } | ConvertTo-Json
+    } | ConvertTo-Json -Compress
     
     Write-Host "`nGửi metrics FAIL đến monitoring..." -ForegroundColor Yellow
     try {
-        Invoke-RestMethod -Uri "$MONITORING_URL/metrics" -Method POST -Body $body -ContentType "application/json"
+        $headers = @{"Content-Type" = "application/json"}
+        Invoke-WebRequest -Uri "$MONITORING_URL/api/report" -Method POST -Body $body -Headers $headers -UseBasicParsing | Out-Null
         Write-Host "✅ Đã gửi metrics! Kiểm tra Grafana: http://34.177.101.213" -ForegroundColor Green
     } catch {
         Write-Host "❌ Lỗi gửi metrics: $_" -ForegroundColor Red
@@ -70,17 +71,18 @@ function Run-PassTest {
     # Gửi metrics - pass
     $body = @{
         service = "auth-service"
-        total = 10
-        passed = 10
-        failed = 0
-        duration = 850
+        results = @{
+            total = 10
+            passed = 10
+            failed = 0
+        }
         coverage = 85
-        timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
-    } | ConvertTo-Json
+    } | ConvertTo-Json -Compress
     
     Write-Host "`nGửi metrics PASS đến monitoring..." -ForegroundColor Yellow
     try {
-        Invoke-RestMethod -Uri "$MONITORING_URL/metrics" -Method POST -Body $body -ContentType "application/json"
+        $headers = @{"Content-Type" = "application/json"}
+        Invoke-WebRequest -Uri "$MONITORING_URL/api/report" -Method POST -Body $body -Headers $headers -UseBasicParsing | Out-Null
         Write-Host "✅ Đã gửi metrics! Kiểm tra Grafana" -ForegroundColor Green
     } catch {
         Write-Host "❌ Lỗi gửi metrics: $_" -ForegroundColor Red
@@ -116,28 +118,29 @@ function Demo-ServiceDown {
             # Giả lập service down
             $body = @{
                 service = $svc
-                total = 0
-                passed = 0
-                failed = 0
-                duration = 0
+                results = @{
+                    total = 0
+                    passed = 0
+                    failed = 0
+                }
                 status = "DOWN"
                 error = "Connection refused"
-                timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
-            } | ConvertTo-Json
+            } | ConvertTo-Json -Compress
         } else {
             # Service bình thường
             $body = @{
                 service = $svc
-                total = 20
-                passed = 18
-                failed = 2
-                duration = 1500
-                timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
-            } | ConvertTo-Json
+                results = @{
+                    total = 20
+                    passed = 18
+                    failed = 2
+                }
+            } | ConvertTo-Json -Compress
         }
         
         try {
-            Invoke-RestMethod -Uri "$MONITORING_URL/metrics" -Method POST -Body $body -ContentType "application/json"
+            $headers = @{"Content-Type" = "application/json"}
+            Invoke-WebRequest -Uri "$MONITORING_URL/api/report" -Method POST -Body $body -Headers $headers -UseBasicParsing | Out-Null
             if ($svc -eq "auth-service") {
                 Write-Host "💀 $svc - DOWN (đã gửi)" -ForegroundColor Red
             } else {
@@ -162,15 +165,16 @@ function Send-ManualMetrics {
     
     $body = @{
         service = $service
-        total = [int]$total
-        passed = [int]$passed
-        failed = [int]$failed
-        duration = 1000
-        timestamp = (Get-Date).ToString("yyyy-MM-ddTHH:mm:ssZ")
-    } | ConvertTo-Json
+        results = @{
+            total = [int]$total
+            passed = [int]$passed
+            failed = [int]$failed
+        }
+    } | ConvertTo-Json -Compress
     
     try {
-        Invoke-RestMethod -Uri "$MONITORING_URL/metrics" -Method POST -Body $body -ContentType "application/json"
+        $headers = @{"Content-Type" = "application/json"}
+        Invoke-WebRequest -Uri "$MONITORING_URL/api/report" -Method POST -Body $body -Headers $headers -UseBasicParsing | Out-Null
         Write-Host "✅ Đã gửi metrics cho $service!" -ForegroundColor Green
     } catch {
         Write-Host "❌ Lỗi: $_" -ForegroundColor Red
