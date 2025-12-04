@@ -50,6 +50,7 @@ jobs:
 
       - name: 📊 Send Metrics to Monitoring
         if: always()
+        continue-on-error: true
         env:
           METRICS_URL: ${{ secrets.TEST_METRICS_URL }}
         run: |
