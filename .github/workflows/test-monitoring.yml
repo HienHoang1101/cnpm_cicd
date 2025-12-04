@@ -1,17 +1,22 @@
 # Test Monitoring Workflow
-# Runs tests and exports results to monitoring dashboard
+# PURPOSE: Runs tests and exports results to Prometheus/Grafana monitoring dashboard
+# NOTE: This is separate from ci-cd.yml which runs tests for CI purposes
+# This workflow focuses on METRICS COLLECTION for the monitoring dashboard
 
 name: Test & Monitor
 
 on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main]
+  # Only run on schedule and manual trigger to avoid duplication with ci-cd.yml
   schedule:
-    # Run tests every 6 hours
+    # Run tests every 6 hours for monitoring
     - cron: '0 */6 * * *'
   workflow_dispatch:
+    inputs:
+      force_run:
+        description: 'Force run even if ci-cd ran recently'
+        required: false
+        default: false
+        type: boolean
 
 env:
   NODE_ENV: test

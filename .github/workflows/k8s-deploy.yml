@@ -1,16 +1,15 @@
 # GitHub Actions workflow for Kubernetes deployment
+# NOTE: This workflow is separate from ci-cd.yml to handle K8s-specific deployments
+# It only triggers on k8s/** changes OR manual dispatch to avoid duplication
+
 name: Deploy to Kubernetes
 
 on:
   push:
     branches: [main]
     paths:
+      # Only trigger when K8s configs change (avoid duplication with ci-cd.yml)
       - 'k8s/**'
-      - 'auth/**'
-      - 'order/**'
-      - 'restaurant/**'
-      - 'payment-service/**'
-      - 'notification-service/**'
   workflow_dispatch:
     inputs:
       environment:
@@ -26,6 +25,11 @@ on:
         description: 'Services to deploy (comma-separated or "all")'
         required: true
         default: 'all'
+      skip_build:
+        description: 'Skip build (use existing images)'
+        required: false
+        default: false
+        type: boolean
 
 env:
   REGISTRY: ghcr.io
@@ -35,6 +39,8 @@ jobs:
   build-and-push:
     name: Build and Push Images
     runs-on: ubuntu-latest
+    # Skip build if manual trigger with skip_build=true
+    if: ${{ inputs.skip_build != true }}
     strategy:
       matrix:
         service:
@@ -101,6 +107,8 @@ jobs:
   deploy:
     name: Deploy to Kubernetes
     needs: build-and-push
+    # Run even if build was skipped
+    if: ${{ always() && (needs.build-and-push.result == 'success' || needs.build-and-push.result == 'skipped') }}
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment || 'development' }}
     
