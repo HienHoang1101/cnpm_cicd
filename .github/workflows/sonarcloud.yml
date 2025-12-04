@@ -1,0 +1,43 @@
+# SonarCloud Analysis Workflow (Separate from main CI/CD)
+# This runs independently to avoid blocking the main pipeline
+
+name: 🔍 SonarCloud Analysis
+
+on:
+  # Manual trigger
+  workflow_dispatch:
+  
+  # Run weekly on Sunday
+  schedule:
+    - cron: '0 0 * * 0'
+
+jobs:
+  sonarcloud:
+    name: 🔍 SonarCloud Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔍 SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.projectKey=HienHoang1101_cnpm_cicd
+            -Dsonar.organization=hienhoang1101
+            -Dsonar.sources=auth,order,restaurant,payment-service,notification-service,admin-service
+            -Dsonar.exclusions=**/node_modules/**,**/coverage/**,**/dist/**,**/build/**,**/tests/**
+
+      - name: 📊 Results Summary
+        if: always()
+        run: |
+          echo "## 🔍 SonarCloud Analysis Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 [View Full Report](https://sonarcloud.io/project/overview?id=HienHoang1101_cnpm_cicd)" >> $GITHUB_STEP_SUMMARY
