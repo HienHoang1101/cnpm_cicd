@@ -47,6 +47,11 @@ setupSwagger(app);
 app.use("/api", Owner);
 app.use("/api/branch", Admin);
 
+// Health check endpoint for Kubernetes
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok", service: "restaurant-service" });
+});
+
 const startServer = async () => {
   try {
     await mongoose.connect(MONGOURL);

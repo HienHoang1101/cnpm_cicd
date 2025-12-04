@@ -1,0 +1,93 @@
+# Prometheus ServiceMonitor for metrics collection
+# Requires Prometheus Operator installed
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: fastfood-services
+  namespace: fastfood
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      monitoring: enabled
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+  namespaceSelector:
+    matchNames:
+      - fastfood
+
+---
+# PrometheusRule for alerting
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: fastfood-alerts
+  namespace: fastfood
+  labels:
+    release: prometheus
+spec:
+  groups:
+    - name: fastfood-services
+      rules:
+        # High error rate alert
+        - alert: HighErrorRate
+          expr: |
+            sum(rate(http_requests_total{status=~"5..", namespace="fastfood"}[5m])) 
+            / sum(rate(http_requests_total{namespace="fastfood"}[5m])) > 0.05
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "High error rate detected"
+            description: "Error rate is above 5% for the last 5 minutes"
+
+        # Pod not ready
+        - alert: PodNotReady
+          expr: |
+            kube_pod_status_ready{namespace="fastfood", condition="true"} == 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Pod not ready"
+            description: "Pod {{ $labels.pod }} has been not ready for 5 minutes"
+
+        # High memory usage
+        - alert: HighMemoryUsage
+          expr: |
+            container_memory_usage_bytes{namespace="fastfood"} 
+            / container_spec_memory_limit_bytes{namespace="fastfood"} > 0.9
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High memory usage"
+            description: "Container {{ $labels.container }} is using more than 90% of memory"
+
+        # High CPU usage
+        - alert: HighCPUUsage
+          expr: |
+            rate(container_cpu_usage_seconds_total{namespace="fastfood"}[5m]) 
+            / container_spec_cpu_quota{namespace="fastfood"} * 100000 > 0.9
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High CPU usage"
+            description: "Container {{ $labels.container }} is using more than 90% of CPU"
+
+        # MongoDB connection issues
+        - alert: MongoDBDown
+          expr: |
+            up{job="mongodb", namespace="fastfood"} == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "MongoDB is down"
+            description: "MongoDB instance has been down for more than 2 minutes"

@@ -1,0 +1,27 @@
+# ConfigMap for shared configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fastfood-config
+  namespace: fastfood
+data:
+  NODE_ENV: "production"
+  MONGODB_URI: "mongodb://mongodb:27017/fastfood"
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  KAFKA_BROKERS: "kafka:9092"
+  JWT_EXPIRES_IN: "7d"
+  
+---
+# ConfigMap for service URLs
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: service-urls
+  namespace: fastfood
+data:
+  AUTH_SERVICE_URL: "http://auth-service:5001"
+  ORDER_SERVICE_URL: "http://order-service:5002"
+  RESTAURANT_SERVICE_URL: "http://restaurant-service:5003"
+  PAYMENT_SERVICE_URL: "http://payment-service:5005"
+  NOTIFICATION_SERVICE_URL: "http://notification-service:5006"

@@ -1,0 +1,8 @@
+# Kubernetes Namespace for FastFood Delivery
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: fastfood
+  labels:
+    app: fastfood-delivery
+    environment: production

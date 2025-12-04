@@ -57,6 +57,11 @@ setupSwagger(app);
 // Routes
 app.use("/api/payment", paymentRoutes);
 
+// Health check endpoint for Kubernetes
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok", service: "payment-service" });
+});
+
 // Start Server
 const PORT = process.env.PORT || 5004;
 app.listen(PORT, () => {

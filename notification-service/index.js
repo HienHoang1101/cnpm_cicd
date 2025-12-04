@@ -49,6 +49,11 @@ setupSwagger(app);
 // Routes
 app.use("/api/notifications", notificationRoutes);
 
+// Health check endpoint for Kubernetes
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok", service: "notification-service" });
+});
+
 // Start Kafka consumer
 startRegistrationConsumer();
 

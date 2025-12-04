@@ -1,0 +1,52 @@
+# Production overlay
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: fastfood-prod
+
+resources:
+  - ../../
+
+namePrefix: prod-
+
+commonLabels:
+  environment: production
+
+# Production replicas
+replicas:
+  - name: auth-service
+    count: 3
+  - name: order-service
+    count: 3
+  - name: restaurant-service
+    count: 3
+  - name: payment-service
+    count: 2
+  - name: notification-service
+    count: 2
+
+# Production resources
+patches:
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: 512Mi
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: 500m
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: 256Mi
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: 200m
+    target:
+      kind: Deployment
+      labelSelector: "app.kubernetes.io/name=fastfood-delivery"
+
+configMapGenerator:
+  - name: fastfood-config
+    behavior: merge
+    literals:
+      - NODE_ENV=production
+      - LOG_LEVEL=info

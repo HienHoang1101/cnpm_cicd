@@ -1,0 +1,24 @@
+# Kustomization base
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: fastfood
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secrets.yaml
+  - mongodb.yaml
+  - redis.yaml
+  - auth-service.yaml
+  - order-service.yaml
+  - restaurant-service.yaml
+  - payment-service.yaml
+  - notification-service.yaml
+  - ingress.yaml
+  - network-policies.yaml
+  - pdb.yaml
+
+commonLabels:
+  app.kubernetes.io/name: fastfood-delivery
+  app.kubernetes.io/managed-by: kustomize
