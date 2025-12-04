@@ -1,0 +1,151 @@
+# =========================================
+# FILEBEAT CONFIGURATION
+# Collect Docker container logs
+# =========================================
+
+filebeat.inputs:
+  # Docker container logs
+  - type: container
+    paths:
+      - '/var/lib/docker/containers/*/*.log'
+    processors:
+      - add_docker_metadata:
+          host: "unix:///var/run/docker.sock"
+      - decode_json_fields:
+          fields: ["message"]
+          target: "json"
+          overwrite_keys: true
+          add_error_key: true
+
+  # Application logs
+  - type: log
+    enabled: true
+    paths:
+      - /var/log/fastfood/*.log
+    json.keys_under_root: true
+    json.add_error_key: true
+    json.message_key: message
+    fields:
+      type: application
+    fields_under_root: true
+
+# =========================================
+# AUTODISCOVER - Docker containers
+# =========================================
+filebeat.autodiscover:
+  providers:
+    - type: docker
+      hints.enabled: true
+      templates:
+        - condition:
+            contains:
+              docker.container.name: "auth"
+          config:
+            - type: container
+              paths:
+                - /var/lib/docker/containers/${data.docker.container.id}/*.log
+              fields:
+                service: auth-service
+              fields_under_root: true
+
+        - condition:
+            contains:
+              docker.container.name: "order"
+          config:
+            - type: container
+              paths:
+                - /var/lib/docker/containers/${data.docker.container.id}/*.log
+              fields:
+                service: order-service
+              fields_under_root: true
+
+        - condition:
+            contains:
+              docker.container.name: "restaurant"
+          config:
+            - type: container
+              paths:
+                - /var/lib/docker/containers/${data.docker.container.id}/*.log
+              fields:
+                service: restaurant-service
+              fields_under_root: true
+
+        - condition:
+            contains:
+              docker.container.name: "payment"
+          config:
+            - type: container
+              paths:
+                - /var/lib/docker/containers/${data.docker.container.id}/*.log
+              fields:
+                service: payment-service
+              fields_under_root: true
+
+        - condition:
+            contains:
+              docker.container.name: "notification"
+          config:
+            - type: container
+              paths:
+                - /var/lib/docker/containers/${data.docker.container.id}/*.log
+              fields:
+                service: notification-service
+              fields_under_root: true
+
+        - condition:
+            contains:
+              docker.container.name: "delivery"
+          config:
+            - type: container
+              paths:
+                - /var/lib/docker/containers/${data.docker.container.id}/*.log
+              fields:
+                service: delivery-service
+              fields_under_root: true
+
+# =========================================
+# PROCESSORS
+# =========================================
+processors:
+  - add_host_metadata:
+      when.not.contains.tags: forwarded
+  - add_cloud_metadata: ~
+  - add_docker_metadata: ~
+  - drop_fields:
+      fields: ["agent.ephemeral_id", "agent.id", "agent.name", "agent.type", "agent.version", "ecs.version"]
+      ignore_missing: true
+
+# =========================================
+# OUTPUT - Elasticsearch
+# =========================================
+output.elasticsearch:
+  hosts: ["http://elasticsearch:9200"]
+  index: "filebeat-fastfood-%{+yyyy.MM.dd}"
+  
+# Alternative: Output to Logstash
+# output.logstash:
+#   hosts: ["logstash:5044"]
+
+# =========================================
+# KIBANA
+# =========================================
+setup.kibana:
+  host: "http://kibana:5601"
+
+# =========================================
+# INDEX LIFECYCLE MANAGEMENT
+# =========================================
+setup.ilm.enabled: true
+setup.ilm.rollover_alias: "filebeat-fastfood"
+setup.ilm.pattern: "{now/d}-000001"
+
+# =========================================
+# LOGGING
+# =========================================
+logging.level: info
+logging.to_files: true
+logging.files:
+  path: /var/log/filebeat
+  name: filebeat
+  keepfiles: 7
+  permissions: 0644
