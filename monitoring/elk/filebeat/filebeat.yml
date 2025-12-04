@@ -121,10 +121,12 @@ processors:
 output.elasticsearch:
   hosts: ["http://elasticsearch:9200"]
   index: "filebeat-fastfood-%{+yyyy.MM.dd}"
-  
-# Alternative: Output to Logstash
-# output.logstash:
-#   hosts: ["logstash:5044"]
+
+# =========================================
+# INDEX TEMPLATE
+# =========================================
+setup.template.name: "filebeat-fastfood"
+setup.template.pattern: "filebeat-fastfood-*"
 
 # =========================================
 # KIBANA
@@ -135,9 +137,7 @@ setup.kibana:
 # =========================================
 # INDEX LIFECYCLE MANAGEMENT
 # =========================================
-setup.ilm.enabled: true
-setup.ilm.rollover_alias: "filebeat-fastfood"
-setup.ilm.pattern: "{now/d}-000001"
+setup.ilm.enabled: false
 
 # =========================================
 # LOGGING
