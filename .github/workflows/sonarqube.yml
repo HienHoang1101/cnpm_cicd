@@ -1,0 +1,92 @@
+# SonarQube Analysis Workflow - Self-hosted on GKE
+# Sends code analysis to our self-hosted SonarQube instance
+
+name: 🔍 SonarQube Analysis
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  SONAR_HOST_URL: http://35.197.131.162:9000
+
+jobs:
+  sonarqube:
+    name: 🔍 SonarQube Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: 📥 Install sonar-scanner
+        run: |
+          npm install -g sonarqube-scanner
+
+      - name: 🔍 Run SonarQube Scan
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN_SELFHOSTED }}
+        run: |
+          sonar-scanner \
+            -Dsonar.host.url=${{ env.SONAR_HOST_URL }} \
+            -Dsonar.token=$SONAR_TOKEN \
+            -Dsonar.projectKey=fastfood-delivery \
+            -Dsonar.projectName="FastFood Delivery" \
+            -Dsonar.sources=auth,order,restaurant,payment-service,notification-service,admin-service \
+            -Dsonar.exclusions=**/node_modules/**,**/coverage/**,**/dist/**,**/build/**,**/tests/**,**/*.test.js,**/*.spec.js \
+            -Dsonar.javascript.lcov.reportPaths=auth/coverage/lcov.info,order/coverage/lcov.info,restaurant/coverage/lcov.info \
+            -Dsonar.sourceEncoding=UTF-8
+
+      - name: 📊 Send Metrics to Monitoring
+        if: always()
+        env:
+          METRICS_URL: ${{ secrets.TEST_METRICS_URL }}
+        run: |
+          # Wait for SonarQube to process
+          sleep 10
+          
+          # Get metrics from SonarQube API
+          METRICS=$(curl -s -u "${{ secrets.SONAR_TOKEN_SELFHOSTED }}:" \
+            "${{ env.SONAR_HOST_URL }}/api/measures/component?component=fastfood-delivery&metricKeys=bugs,vulnerabilities,code_smells,coverage,duplicated_lines_density,ncloc")
+          
+          echo "SonarQube Metrics: $METRICS"
+          
+          # Parse and send to monitoring
+          if [ -n "$METRICS_URL" ]; then
+            BUGS=$(echo $METRICS | jq -r '.component.measures[] | select(.metric=="bugs") | .value // "0"')
+            VULNS=$(echo $METRICS | jq -r '.component.measures[] | select(.metric=="vulnerabilities") | .value // "0"')
+            SMELLS=$(echo $METRICS | jq -r '.component.measures[] | select(.metric=="code_smells") | .value // "0"')
+            COVERAGE=$(echo $METRICS | jq -r '.component.measures[] | select(.metric=="coverage") | .value // "0"')
+            DUPES=$(echo $METRICS | jq -r '.component.measures[] | select(.metric=="duplicated_lines_density") | .value // "0"')
+            NCLOC=$(echo $METRICS | jq -r '.component.measures[] | select(.metric=="ncloc") | .value // "0"')
+            
+            curl -X POST "$METRICS_URL/api/sonar" \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
+                \"bugs\": \"$BUGS\",
+                \"vulnerabilities\": \"$VULNS\",
+                \"codeSmells\": \"$SMELLS\",
+                \"coverage\": \"$COVERAGE\",
+                \"duplications\": \"$DUPES\",
+                \"linesOfCode\": \"$NCLOC\"
+              }" && echo "✅ Metrics sent to monitoring"
+          fi
+
+      - name: 📊 Results Summary
+        if: always()
+        run: |
+          echo "## 🔍 SonarQube Analysis Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 [View Full Report](${{ env.SONAR_HOST_URL }}/dashboard?id=fastfood-delivery)" >> $GITHUB_STEP_SUMMARY
