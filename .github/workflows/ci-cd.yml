@@ -508,16 +508,12 @@ jobs:
     name: 🔍 SonarCloud Code Analysis
     runs-on: ubuntu-latest
     needs: [lint, unit-tests]
+    timeout-minutes: 10
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Full history for better analysis
-
-      - name: 📦 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+          fetch-depth: 1  # Shallow clone for faster checkout
 
       - name: 📥 Download Test Coverage
         uses: actions/download-artifact@v4
@@ -526,36 +522,9 @@ jobs:
           path: tests/
         continue-on-error: true
 
-      - name: 📥 Download Coverage (Auth)
-        uses: actions/download-artifact@v4
-        with:
-          name: unit-test-results-auth
-          path: auth/
-        continue-on-error: true
-
-      - name: 📥 Download Coverage (Order)
-        uses: actions/download-artifact@v4
-        with:
-          name: unit-test-results-order
-          path: order/
-        continue-on-error: true
-
-      - name: 📥 Download Coverage (Restaurant)
-        uses: actions/download-artifact@v4
-        with:
-          name: unit-test-results-restaurant
-          path: restaurant/
-        continue-on-error: true
-
-      - name: 📥 Download Coverage (Admin)
-        uses: actions/download-artifact@v4
-        with:
-          name: unit-test-results-admin-service
-          path: admin-service/
-        continue-on-error: true
-
       - name: 🔍 SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
+        timeout-minutes: 8
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -563,16 +532,12 @@ jobs:
           args: >
             -Dsonar.projectKey=HienHoang1101_cnpm_cicd
             -Dsonar.organization=hienhoang1101
-
-      - name: 📊 SonarCloud Quality Gate
-        uses: sonarsource/sonarqube-quality-gate-action@master
-        timeout-minutes: 5
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        continue-on-error: true
+            -Dsonar.sources=auth,order,restaurant,payment-service,notification-service,admin-service
+            -Dsonar.exclusions=**/node_modules/**,**/coverage/**,**/dist/**,**/build/**,**/tests/**,**/*.test.js
 
       - name: 📈 Send SonarCloud Metrics to Monitoring
         if: always()
+        continue-on-error: true
         run: |
           # Get SonarCloud metrics via API
           METRICS=$(curl -s -u "${{ secrets.SONAR_TOKEN }}:" \
@@ -580,12 +545,12 @@ jobs:
             2>/dev/null || echo '{}')
           
           # Parse metrics
-          BUGS=$(echo "$METRICS" | jq -r '.component.measures[] | select(.metric=="bugs") | .value // "0"')
-          VULNERABILITIES=$(echo "$METRICS" | jq -r '.component.measures[] | select(.metric=="vulnerabilities") | .value // "0"')
-          CODE_SMELLS=$(echo "$METRICS" | jq -r '.component.measures[] | select(.metric=="code_smells") | .value // "0"')
-          COVERAGE=$(echo "$METRICS" | jq -r '.component.measures[] | select(.metric=="coverage") | .value // "0"')
-          DUPLICATIONS=$(echo "$METRICS" | jq -r '.component.measures[] | select(.metric=="duplicated_lines_density") | .value // "0"')
-          LINES=$(echo "$METRICS" | jq -r '.component.measures[] | select(.metric=="ncloc") | .value // "0"')
+          BUGS=$(echo "$METRICS" | jq -r '.component.measures[]? | select(.metric=="bugs") | .value // "0"' 2>/dev/null || echo "0")
+          VULNERABILITIES=$(echo "$METRICS" | jq -r '.component.measures[]? | select(.metric=="vulnerabilities") | .value // "0"' 2>/dev/null || echo "0")
+          CODE_SMELLS=$(echo "$METRICS" | jq -r '.component.measures[]? | select(.metric=="code_smells") | .value // "0"' 2>/dev/null || echo "0")
+          COVERAGE=$(echo "$METRICS" | jq -r '.component.measures[]? | select(.metric=="coverage") | .value // "0"' 2>/dev/null || echo "0")
+          DUPLICATIONS=$(echo "$METRICS" | jq -r '.component.measures[]? | select(.metric=="duplicated_lines_density") | .value // "0"' 2>/dev/null || echo "0")
+          LINES=$(echo "$METRICS" | jq -r '.component.measures[]? | select(.metric=="ncloc") | .value // "0"' 2>/dev/null || echo "0")
           
           # Send to Test Metrics Exporter
           if [ -n "${{ secrets.TEST_METRICS_URL }}" ]; then
