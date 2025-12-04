@@ -268,38 +268,67 @@ jobs:
             passed: 0,
             failed: 0,
             skipped: 0,
+            coverage: 0,
             services: {}
           };
           
+          let totalCoverage = 0;
+          let coverageCount = 0;
+          
           services.forEach(service => {
             const reportPath = path.join(reportsDir, `${service}-results.json`);
+            const coveragePath = path.join(reportsDir, `${service}-coverage.json`);
+            
             if (fs.existsSync(reportPath)) {
               try {
                 const data = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+                
+                // Try to get coverage from Jest report or coverage file
+                let serviceCoverage = 0;
+                if (data.coverageMap) {
+                  const covSummary = data.coverageMap.total || {};
+                  serviceCoverage = covSummary.lines?.pct || covSummary.statements?.pct || 0;
+                }
+                if (fs.existsSync(coveragePath)) {
+                  try {
+                    const covData = JSON.parse(fs.readFileSync(coveragePath, 'utf8'));
+                    serviceCoverage = covData.total?.lines?.pct || covData.total?.statements?.pct || serviceCoverage;
+                  } catch (e) {}
+                }
+                
                 summary.services[service] = {
                   total: data.numTotalTests || 0,
                   passed: data.numPassedTests || 0,
                   failed: data.numFailedTests || 0,
                   skipped: data.numPendingTests || 0,
+                  coverage: serviceCoverage,
                   success: data.success
                 };
                 summary.total += data.numTotalTests || 0;
                 summary.passed += data.numPassedTests || 0;
                 summary.failed += data.numFailedTests || 0;
                 summary.skipped += data.numPendingTests || 0;
+                
+                if (serviceCoverage > 0) {
+                  totalCoverage += serviceCoverage;
+                  coverageCount++;
+                }
               } catch (e) {
                 console.error(`Error parsing ${service} results:`, e.message);
-                summary.services[service] = { total: 0, passed: 0, failed: 0, skipped: 0, success: false, error: e.message };
+                summary.services[service] = { total: 0, passed: 0, failed: 0, skipped: 0, coverage: 0, success: false, error: e.message };
               }
             } else {
               console.log(`No results found for ${service}`);
-              summary.services[service] = { total: 0, passed: 0, failed: 0, skipped: 0, success: false, error: 'No results file' };
+              summary.services[service] = { total: 0, passed: 0, failed: 0, skipped: 0, coverage: 0, success: false, error: 'No results file' };
             }
           });
           
           summary.passRate = summary.total > 0 
             ? ((summary.passed / summary.total) * 100).toFixed(2) 
             : '0.00';
+          
+          // Calculate average coverage
+          summary.coverage = coverageCount > 0 ? (totalCoverage / coverageCount).toFixed(2) : 0;
           
           fs.writeFileSync(
             path.join(reportsDir, 'summary.json'),
@@ -381,9 +410,25 @@ jobs:
           if [ -f summary.json ] && [ -n "$METRICS_ENDPOINT" ]; then
             echo "📊 Sending test results to monitoring..."
             cat summary.json
-            curl -X POST "$METRICS_ENDPOINT/api/report" \
-              -H "Content-Type: application/json" \
-              -d @summary.json && echo "✅ Metrics sent successfully" || echo "❌ Failed to send metrics"
+            
+            # Send each service's results individually
+            for service in auth order restaurant payment notification; do
+              TOTAL=$(jq -r ".services.$service.total // 0" summary.json)
+              PASSED=$(jq -r ".services.$service.passed // 0" summary.json)
+              FAILED=$(jq -r ".services.$service.failed // 0" summary.json)
+              SKIPPED=$(jq -r ".services.$service.skipped // 0" summary.json)
+              
+              echo "Sending $service: total=$TOTAL, passed=$PASSED, failed=$FAILED"
+              curl -s -X POST "$METRICS_ENDPOINT/api/report" \
+                -H "Content-Type: application/json" \
+                -d "{\"service\":\"$service\",\"results\":{\"total\":$TOTAL,\"passed\":$PASSED,\"failed\":$FAILED,\"skipped\":$SKIPPED}}" || true
+            done
+            
+            # Also send summary coverage
+            COVERAGE=$(jq -r ".coverage // 0" summary.json)
+            echo "Total coverage: $COVERAGE%"
+            
+            echo "✅ Metrics sent successfully"
           else
             echo "⚠️ No metrics endpoint configured or no summary file, skipping..."
             echo "Summary file exists: $(test -f summary.json && echo 'yes' || echo 'no')"
