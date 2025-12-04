@@ -333,7 +333,7 @@ const getOrderById = async (req, res) => {
     }
 
     // Check permissions and get full restaurant details
-    const isRestaurant = false;
+    let isRestaurant = false;
     const response = await getRestaurantById(
       req.headers.authorization,
       order.restaurantOrder.restaurantId

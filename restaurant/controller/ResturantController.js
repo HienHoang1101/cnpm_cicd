@@ -138,7 +138,6 @@ export const addRestaurant = async (req, res) => {
         ? openingHours
         : defaultOpeningHours, // Use provided hours or default
       estimatedPrepTime: estimatedPrepTime,
-      estimatedPrepTime: estimatedPrepTime,
     };
 
     const resturants = await Restaurant.create(restaurant);
@@ -285,9 +284,8 @@ export const updateRestaurant = async (req, res) => {
         }
       }
       restaurant.coverImageUrl = "";
-    } else {
-      restaurant.coverImageUrl = restaurant.coverImageUrl;
     }
+    // If coverImageUrl is not provided, keep existing value (no action needed)
     restaurant.name = name || restaurant.name;
     restaurant.description = description || restaurant.description;
     restaurant.address = address || restaurant.address;

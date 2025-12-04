@@ -2,5 +2,5 @@ projectKey=fastfood-delivery
 serverUrl=http://localhost:9000
 serverVersion=9.9.8.100196
 dashboardUrl=http://localhost:9000/dashboard?id=fastfood-delivery
-ceTaskId=AZrp6kj4BxhjKA0x8Ib-
-ceTaskUrl=http://localhost:9000/api/ce/task?id=AZrp6kj4BxhjKA0x8Ib-
+ceTaskId=AZrp8PZ8BxhjKA0x8Ib_
+ceTaskUrl=http://localhost:9000/api/ce/task?id=AZrp8PZ8BxhjKA0x8Ib_
