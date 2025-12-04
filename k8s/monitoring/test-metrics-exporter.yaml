@@ -16,9 +16,8 @@ spec:
       labels:
         app: test-metrics-exporter
       annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: "9091"
-        prometheus.io/path: "/metrics"
+        # Disable kubernetes auto-discovery to avoid duplicate scraping
+        prometheus.io/scrape: "false"
     spec:
       containers:
         - name: test-metrics-exporter
