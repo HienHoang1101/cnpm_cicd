@@ -376,13 +376,16 @@ jobs:
       
       - name: Send to monitoring (if available)
         env:
-          METRICS_ENDPOINT: ${{ secrets.METRICS_ENDPOINT }}
+          METRICS_ENDPOINT: ${{ secrets.TEST_METRICS_URL }}
         run: |
           if [ -f summary.json ] && [ -n "$METRICS_ENDPOINT" ]; then
+            echo "📊 Sending test results to monitoring..."
+            cat summary.json
             curl -X POST "$METRICS_ENDPOINT/api/report" \
               -H "Content-Type: application/json" \
-              -d @summary.json || echo "Failed to send metrics"
+              -d @summary.json && echo "✅ Metrics sent successfully" || echo "❌ Failed to send metrics"
           else
-            echo "No metrics endpoint configured or no summary file, skipping..."
+            echo "⚠️ No metrics endpoint configured or no summary file, skipping..."
             echo "Summary file exists: $(test -f summary.json && echo 'yes' || echo 'no')"
+            echo "METRICS_ENDPOINT set: $(test -n \"$METRICS_ENDPOINT\" && echo 'yes' || echo 'no')"
           fi
