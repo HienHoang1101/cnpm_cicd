@@ -1,0 +1,175 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: FastFood Alerts
+    folder: FastFood
+    interval: 1m
+    rules:
+      # Alert khi service down
+      - uid: service-down-alert
+        title: Service Down Alert
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: up{job=~".*fastfood.*"} == 0
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    type: last
+              refId: C
+              type: classic_conditions
+        noDataState: NoData
+        execErrState: Error
+        for: 1m
+        annotations:
+          summary: "Service {{ $labels.job }} is DOWN"
+          description: "The service {{ $labels.job }} has been down for more than 1 minute"
+        labels:
+          severity: critical
+
+      # Alert khi test fail rate cao
+      - uid: high-test-failure-alert
+        title: High Test Failure Rate
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: (test_failed / test_total) * 100 > 20
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    type: last
+              refId: C
+              type: classic_conditions
+        noDataState: OK
+        execErrState: Error
+        for: 1m
+        annotations:
+          summary: "High test failure rate detected"
+          description: "Test failure rate is above 20%"
+        labels:
+          severity: warning
+
+      # Alert khi coverage thấp
+      - uid: low-coverage-alert
+        title: Low Code Coverage
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sonar_coverage < 10
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    type: last
+              refId: C
+              type: classic_conditions
+        noDataState: OK
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: "Code coverage is below threshold"
+          description: "Code coverage is {{ $value }}%, which is below 10%"
+        labels:
+          severity: warning
+
+      # Alert khi có vulnerabilities mới
+      - uid: security-vulnerability-alert
+        title: Security Vulnerabilities Detected
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sonar_vulnerabilities > 0
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    type: last
+              refId: C
+              type: classic_conditions
+        noDataState: OK
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: "Security vulnerabilities detected"
+          description: "{{ $value }} security vulnerabilities found in codebase"
+        labels:
+          severity: critical
