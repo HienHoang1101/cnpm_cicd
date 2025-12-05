@@ -243,3 +243,127 @@ describe('Delivery Zone', () => {
     expect(isInDeliveryZone(10.0, 106.0, 10.1, 106.1, 5)).toBe(false);
   });
 });
+
+describe('Restaurant Search', () => {
+  const mockRestaurants = [
+    { _id: '1', name: 'Pho Hanoi', cuisine: 'Vietnamese', address: '123 Le Loi', rating: 4.5, isOpen: true },
+    { _id: '2', name: 'Banh Mi Saigon', cuisine: 'Vietnamese', address: '456 Nguyen Hue', rating: 4.2, isOpen: true },
+    { _id: '3', name: 'Pizza Italia', cuisine: 'Italian', address: '789 Dong Khoi', rating: 4.8, isOpen: false },
+    { _id: '4', name: 'Sushi Tokyo', cuisine: 'Japanese', address: '321 Hai Ba Trung', rating: 4.6, isOpen: true },
+    { _id: '5', name: 'Burger King', cuisine: 'American', address: '654 Le Thanh Ton', rating: 4.0, isOpen: true }
+  ];
+
+  // Search function
+  const searchRestaurants = (restaurants, query, filters = {}) => {
+    let results = restaurants;
+
+    // Search by name or cuisine (case-insensitive)
+    if (query) {
+      const searchTerm = query.toLowerCase();
+      results = results.filter(r => 
+        r.name.toLowerCase().includes(searchTerm) ||
+        r.cuisine.toLowerCase().includes(searchTerm) ||
+        r.address.toLowerCase().includes(searchTerm)
+      );
+    }
+
+    // Filter by cuisine
+    if (filters.cuisine) {
+      results = results.filter(r => r.cuisine === filters.cuisine);
+    }
+
+    // Filter by open status
+    if (filters.isOpen !== undefined) {
+      results = results.filter(r => r.isOpen === filters.isOpen);
+    }
+
+    // Filter by minimum rating
+    if (filters.minRating) {
+      results = results.filter(r => r.rating >= filters.minRating);
+    }
+
+    // Sort by rating (descending)
+    if (filters.sortByRating) {
+      results = results.sort((a, b) => b.rating - a.rating);
+    }
+
+    return results;
+  };
+
+  test('should search restaurants by name', () => {
+    const results = searchRestaurants(mockRestaurants, 'Pho');
+    
+    expect(results.length).toBe(1);
+    expect(results[0].name).toBe('Pho Hanoi');
+  });
+
+  test('should search restaurants by cuisine', () => {
+    const results = searchRestaurants(mockRestaurants, 'Vietnamese');
+    
+    expect(results.length).toBe(2);
+    expect(results.map(r => r.name)).toContain('Pho Hanoi');
+    expect(results.map(r => r.name)).toContain('Banh Mi Saigon');
+  });
+
+  test('should search restaurants by address', () => {
+    const results = searchRestaurants(mockRestaurants, 'Dong Khoi');
+    
+    expect(results.length).toBe(1);
+    expect(results[0].name).toBe('Pizza Italia');
+  });
+
+  test('should filter restaurants by open status', () => {
+    const results = searchRestaurants(mockRestaurants, '', { isOpen: true });
+    
+    expect(results.length).toBe(4);
+    expect(results.every(r => r.isOpen === true)).toBe(true);
+  });
+
+  test('should filter restaurants by minimum rating', () => {
+    const results = searchRestaurants(mockRestaurants, '', { minRating: 4.5 });
+    
+    expect(results.length).toBe(3);
+    expect(results.every(r => r.rating >= 4.5)).toBe(true);
+  });
+
+  test('should combine search query with filters', () => {
+    const results = searchRestaurants(mockRestaurants, 'Vietnamese', { 
+      isOpen: true, 
+      minRating: 4.3 
+    });
+    
+    expect(results.length).toBe(1);
+    expect(results[0].name).toBe('Pho Hanoi');
+  });
+
+  test('should sort results by rating', () => {
+    const results = searchRestaurants(mockRestaurants, '', { sortByRating: true });
+    
+    expect(results[0].name).toBe('Pizza Italia'); // 4.8
+    expect(results[1].name).toBe('Sushi Tokyo');  // 4.6
+    expect(results[2].name).toBe('Pho Hanoi');    // 4.5
+  });
+
+  test('should return empty array when no matches found', () => {
+    const results = searchRestaurants(mockRestaurants, 'Mexican');
+    
+    expect(results.length).toBe(0);
+    expect(results).toEqual([]);
+  });
+
+  test('should be case-insensitive', () => {
+    const results1 = searchRestaurants(mockRestaurants, 'PHO');
+    const results2 = searchRestaurants(mockRestaurants, 'pho');
+    const results3 = searchRestaurants(mockRestaurants, 'Pho');
+    
+    expect(results1.length).toBe(results2.length);
+    expect(results2.length).toBe(results3.length);
+    expect(results1[0].name).toBe('Pho Hanoi');
+  });
+
+  test('should return all restaurants when no query or filters', () => {
+    const results = searchRestaurants(mockRestaurants, '');
+    
+    expect(results.length).toBe(5);
+  });
+});
