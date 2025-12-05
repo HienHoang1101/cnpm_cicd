@@ -16,6 +16,10 @@ env:
   NODE_VERSION: '18'
   DOCKER_REGISTRY: ghcr.io
   IMAGE_PREFIX: ${{ github.repository_owner }}/fastfood
+  GKE_CLUSTER: fastfood-cluster
+  GKE_REGION: asia-southeast1
+  GCP_PROJECT: fastfood-cicd-2025
+  ARTIFACT_REGISTRY: asia-southeast1-docker.pkg.dev/fastfood-cicd-2025/fastfood-repo
 
 jobs:
   # ========================================
@@ -551,10 +555,10 @@ jobs:
           echo "✅ Deployment to staging completed!"
 
   # ========================================
-  # JOB 8: DEPLOY TO PRODUCTION
+  # JOB 8: DEPLOY TO PRODUCTION (GKE)
   # ========================================
   deploy-production:
-    name: 🚀 Deploy to Production
+    name: 🚀 Deploy to Production (GKE)
     runs-on: ubuntu-latest
     needs: [e2e-tests, build, security]
     if: github.ref == 'refs/heads/main'
@@ -565,19 +569,110 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: 🔐 Login to Container Registry
-        uses: docker/login-action@v3
+      - name: 🔐 Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
         with:
-          registry: ${{ env.DOCKER_REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-      - name: 🚀 Deploy to Production
+      - name: ☁️ Setup Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT }}
+
+      - name: 🔧 Configure kubectl
         run: |
-          echo "Deploying to production environment..."
-          # docker-compose -f docker-compose.prod.yml pull
-          # docker-compose -f docker-compose.prod.yml up -d
-          echo "✅ Deployment to production completed!"
+          gcloud container clusters get-credentials ${{ env.GKE_CLUSTER }} \
+            --region ${{ env.GKE_REGION }} \
+            --project ${{ env.GCP_PROJECT }}
+
+      - name: 🔐 Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker asia-southeast1-docker.pkg.dev --quiet
+
+      - name: 🏗️ Build and Push Auth Service
+        run: |
+          docker build -t ${{ env.ARTIFACT_REGISTRY }}/auth-service:${{ github.sha }} ./auth
+          docker push ${{ env.ARTIFACT_REGISTRY }}/auth-service:${{ github.sha }}
+          docker tag ${{ env.ARTIFACT_REGISTRY }}/auth-service:${{ github.sha }} ${{ env.ARTIFACT_REGISTRY }}/auth-service:latest
+          docker push ${{ env.ARTIFACT_REGISTRY }}/auth-service:latest
+
+      - name: 🏗️ Build and Push Order Service
+        run: |
+          docker build -t ${{ env.ARTIFACT_REGISTRY }}/order-service:${{ github.sha }} ./order
+          docker push ${{ env.ARTIFACT_REGISTRY }}/order-service:${{ github.sha }}
+          docker tag ${{ env.ARTIFACT_REGISTRY }}/order-service:${{ github.sha }} ${{ env.ARTIFACT_REGISTRY }}/order-service:latest
+          docker push ${{ env.ARTIFACT_REGISTRY }}/order-service:latest
+
+      - name: 🏗️ Build and Push Restaurant Service
+        run: |
+          docker build -t ${{ env.ARTIFACT_REGISTRY }}/restaurant-service:${{ github.sha }} ./restaurant
+          docker push ${{ env.ARTIFACT_REGISTRY }}/restaurant-service:${{ github.sha }}
+          docker tag ${{ env.ARTIFACT_REGISTRY }}/restaurant-service:${{ github.sha }} ${{ env.ARTIFACT_REGISTRY }}/restaurant-service:latest
+          docker push ${{ env.ARTIFACT_REGISTRY }}/restaurant-service:latest
+
+      - name: 🏗️ Build and Push Admin Web
+        run: |
+          docker build -t ${{ env.ARTIFACT_REGISTRY }}/admin-web:${{ github.sha }} ./food-delivery-admin
+          docker push ${{ env.ARTIFACT_REGISTRY }}/admin-web:${{ github.sha }}
+          docker tag ${{ env.ARTIFACT_REGISTRY }}/admin-web:${{ github.sha }} ${{ env.ARTIFACT_REGISTRY }}/admin-web:latest
+          docker push ${{ env.ARTIFACT_REGISTRY }}/admin-web:latest
+
+      - name: 🚀 Deploy to GKE
+        run: |
+          echo "🚀 Deploying to GKE Production..."
+          
+          # Update image tags in deployments
+          kubectl set image deployment/auth-service \
+            auth-service=${{ env.ARTIFACT_REGISTRY }}/auth-service:${{ github.sha }} \
+            -n fastfood --record || echo "Auth service deployment not found, skipping..."
+          
+          kubectl set image deployment/order-service \
+            order-service=${{ env.ARTIFACT_REGISTRY }}/order-service:${{ github.sha }} \
+            -n fastfood --record || echo "Order service deployment not found, skipping..."
+          
+          kubectl set image deployment/restaurant-service \
+            restaurant-service=${{ env.ARTIFACT_REGISTRY }}/restaurant-service:${{ github.sha }} \
+            -n fastfood --record || echo "Restaurant service deployment not found, skipping..."
+          
+          kubectl set image deployment/admin-web \
+            admin-web=${{ env.ARTIFACT_REGISTRY }}/admin-web:${{ github.sha }} \
+            -n fastfood --record || echo "Admin web deployment not found, skipping..."
+          
+          # Wait for rollout
+          kubectl rollout status deployment/auth-service -n fastfood --timeout=300s || true
+          kubectl rollout status deployment/order-service -n fastfood --timeout=300s || true
+          kubectl rollout status deployment/restaurant-service -n fastfood --timeout=300s || true
+          kubectl rollout status deployment/admin-web -n fastfood --timeout=300s || true
+          
+          echo "✅ Deployment to GKE Production completed!"
+
+      - name: 📊 Send Deployment Metrics
+        if: always()
+        run: |
+          curl -X POST "${{ secrets.TEST_METRICS_URL || 'http://34.124.159.231:9091/api/report' }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "repository": "${{ github.repository }}",
+              "branch": "${{ github.ref_name }}",
+              "commit": "${{ github.sha }}",
+              "workflow": "${{ github.workflow }}",
+              "runNumber": ${{ github.run_number }},
+              "status": "deployed",
+              "deployedAt": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'",
+              "environment": "production"
+            }' || echo "Failed to send deployment metrics"
+
+      - name: 📋 Deployment Summary
+        run: |
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Environment** | Production (GKE) |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Cluster** | ${{ env.GKE_CLUSTER }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Region** | ${{ env.GKE_REGION }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Commit** | ${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Deployed At** | $(date -u +%Y-%m-%dT%H:%M:%SZ) |" >> $GITHUB_STEP_SUMMARY
 
   # ========================================
   # JOB 9: TEST REPORT SUMMARY

@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: restaurant-web
+  namespace: fastfood
+  labels:
+    app: restaurant-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: restaurant-web
+  template:
+    metadata:
+      labels:
+        app: restaurant-web
+    spec:
+      containers:
+      - name: restaurant-web
+        image: asia-southeast1-docker.pkg.dev/fastfood-cicd-2025/fastfood-repo/restaurant-web:latest
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: restaurant-web
+  namespace: fastfood
+spec:
+  type: LoadBalancer
+  selector:
+    app: restaurant-web
+  ports:
+  - port: 80
+    targetPort: 80
