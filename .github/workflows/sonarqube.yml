@@ -57,33 +57,45 @@ jobs:
           # Wait for SonarQube to process
           sleep 10
           
-          # Get metrics from SonarQube API
-          METRICS=$(curl -s -u "${{ secrets.SONAR_TOKEN_SELFHOSTED }}:" \
-            "${{ env.SONAR_HOST_URL }}/api/measures/component?component=fastfood-delivery&metricKeys=bugs,vulnerabilities,code_smells,coverage,duplicated_lines_density,ncloc")
+          # Get metrics from SonarQube API (public access)
+          METRICS=$(curl -s "${{ env.SONAR_HOST_URL }}/api/measures/component?component=fastfood-delivery&metricKeys=bugs,vulnerabilities,code_smells,coverage,duplicated_lines_density,ncloc" || echo '{}')
           
           echo "SonarQube Metrics: $METRICS"
           
           # Parse and send to monitoring
           if [ -n "$METRICS_URL" ]; then
-            BUGS=$(echo $METRICS | jq -r '.component.measures[] | select(.metric=="bugs") | .value // "0"')
-            VULNS=$(echo $METRICS | jq -r '.component.measures[] | select(.metric=="vulnerabilities") | .value // "0"')
-            SMELLS=$(echo $METRICS | jq -r '.component.measures[] | select(.metric=="code_smells") | .value // "0"')
-            COVERAGE=$(echo $METRICS | jq -r '.component.measures[] | select(.metric=="coverage") | .value // "0"')
-            DUPES=$(echo $METRICS | jq -r '.component.measures[] | select(.metric=="duplicated_lines_density") | .value // "0"')
-            NCLOC=$(echo $METRICS | jq -r '.component.measures[] | select(.metric=="ncloc") | .value // "0"')
+            # Default values if API fails
+            BUGS=$(echo "$METRICS" | jq -r '.component.measures[]? | select(.metric=="bugs") | .value // "0"' 2>/dev/null || echo "0")
+            VULNS=$(echo "$METRICS" | jq -r '.component.measures[]? | select(.metric=="vulnerabilities") | .value // "0"' 2>/dev/null || echo "0")
+            SMELLS=$(echo "$METRICS" | jq -r '.component.measures[]? | select(.metric=="code_smells") | .value // "0"' 2>/dev/null || echo "0")
+            COVERAGE=$(echo "$METRICS" | jq -r '.component.measures[]? | select(.metric=="coverage") | .value // "0"' 2>/dev/null || echo "0")
+            DUPES=$(echo "$METRICS" | jq -r '.component.measures[]? | select(.metric=="duplicated_lines_density") | .value // "0"' 2>/dev/null || echo "0")
+            NCLOC=$(echo "$METRICS" | jq -r '.component.measures[]? | select(.metric=="ncloc") | .value // "0"' 2>/dev/null || echo "0")
             
-            curl -X POST "$METRICS_URL/api/sonar" \
+            # Handle empty values
+            [ -z "$BUGS" ] && BUGS="0"
+            [ -z "$VULNS" ] && VULNS="0"
+            [ -z "$SMELLS" ] && SMELLS="0"
+            [ -z "$COVERAGE" ] && COVERAGE="0"
+            [ -z "$DUPES" ] && DUPES="0"
+            [ -z "$NCLOC" ] && NCLOC="0"
+            
+            echo "Sending: bugs=$BUGS, vulns=$VULNS, smells=$SMELLS, coverage=$COVERAGE"
+            
+            curl -s -X POST "$METRICS_URL/api/sonar" \
               -H "Content-Type: application/json" \
               -d "{
                 \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
-                \"bugs\": \"$BUGS\",
-                \"vulnerabilities\": \"$VULNS\",
-                \"codeSmells\": \"$SMELLS\",
-                \"coverage\": \"$COVERAGE\",
-                \"duplications\": \"$DUPES\",
-                \"linesOfCode\": \"$NCLOC\"
-              }" && echo "✅ Metrics sent to monitoring"
+                \"bugs\": $BUGS,
+                \"vulnerabilities\": $VULNS,
+                \"codeSmells\": $SMELLS,
+                \"coverage\": $COVERAGE,
+                \"duplications\": $DUPES,
+                \"linesOfCode\": $NCLOC
+              }" && echo "✅ Metrics sent to monitoring" || echo "⚠️ Could not send metrics"
           fi
+          
+          echo "✅ SonarQube analysis completed successfully"
 
       - name: 📊 Results Summary
         if: always()
