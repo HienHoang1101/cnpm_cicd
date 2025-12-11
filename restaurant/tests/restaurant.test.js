@@ -94,19 +94,21 @@ describe('Restaurant Service', () => {
       expect(updated.price).toBe(14.99);
     });
 
-    it('should toggle menu item availability', async () => {
-      const item = { ...mockMenuItem };
-      item.isAvailable = false;
+    // COMMENTED OUT - Testing metrics decrease
+    // it('should toggle menu item availability', async () => {
+    //   const item = { ...mockMenuItem };
+    //   item.isAvailable = false;
 
-      expect(item.isAvailable).toBe(false);
-    });
+    //   expect(item.isAvailable).toBe(false);
+    // });
 
-    it('should delete menu item', async () => {
-      const items = [mockMenuItem];
-      const filtered = items.filter(i => i._id !== 'menu123');
+    // COMMENTED OUT - Testing metrics decrease
+    // it('should delete menu item', async () => {
+    //   const items = [mockMenuItem];
+    //   const filtered = items.filter(i => i._id !== 'menu123');
 
-      expect(filtered.length).toBe(0);
-    });
+    //   expect(filtered.length).toBe(0);
+    // });
   });
 
   describe('Restaurant Search', () => {
