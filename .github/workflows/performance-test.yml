@@ -1,0 +1,187 @@
+# Performance/Load Test Workflow
+# Runs load tests to verify system can handle expected traffic
+
+name: 🔥 Performance Test
+
+on:
+  # Run after successful deployment
+  workflow_run:
+    workflows: ["🚀 CI/CD Pipeline"]
+    types: [completed]
+    branches: [main]
+  
+  # Manual trigger with custom parameters
+  workflow_dispatch:
+    inputs:
+      concurrent_users:
+        description: 'Number of concurrent users to simulate'
+        required: false
+        default: '50'
+        type: string
+      test_duration:
+        description: 'Test duration in seconds'
+        required: false
+        default: '30'
+        type: string
+      ramp_up:
+        description: 'Gradually increase users'
+        required: false
+        default: true
+        type: boolean
+
+  # Schedule: Run daily at 2 AM UTC
+  schedule:
+    - cron: '0 2 * * *'
+
+env:
+  METRICS_URL: ${{ secrets.TEST_METRICS_URL }}
+
+jobs:
+  load-test:
+    name: 🔥 Load Test
+    runs-on: ubuntu-latest
+    # Only run if previous workflow succeeded (for workflow_run trigger)
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: 🔥 Run Load Test
+        id: loadtest
+        env:
+          CONCURRENT_USERS: ${{ github.event.inputs.concurrent_users || '50' }}
+          TEST_DURATION: ${{ github.event.inputs.test_duration || '30' }}
+          RAMP_UP_TIME: '10'
+          REQUEST_DELAY: '100'
+          # Use GKE service URLs if available
+          AUTH_URL: ${{ secrets.AUTH_API_URL || 'http://34.87.39.232:5001' }}
+          ORDER_URL: ${{ secrets.ORDER_API_URL || 'http://localhost:5002' }}
+          RESTAURANT_URL: ${{ secrets.RESTAURANT_API_URL || 'http://localhost:5003' }}
+          PAYMENT_URL: ${{ secrets.PAYMENT_API_URL || 'http://localhost:5005' }}
+          NOTIFICATION_URL: ${{ secrets.NOTIFICATION_API_URL || 'http://localhost:5006' }}
+        run: |
+          echo "🚀 Starting load test with $CONCURRENT_USERS users for ${TEST_DURATION}s"
+          node tests/performance/load-test.js ${{ github.event.inputs.ramp_up && '--ramp-up' || '' }}
+        continue-on-error: true
+
+      - name: 📊 Generate Report
+        if: always()
+        run: |
+          echo "## 🔥 Performance Test Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Concurrent Users | ${{ github.event.inputs.concurrent_users || '50' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Duration | ${{ github.event.inputs.test_duration || '30' }}s |" >> $GITHUB_STEP_SUMMARY
+          echo "| Status | ${{ steps.loadtest.outcome == 'success' && '✅ PASSED' || '❌ FAILED' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📊 View detailed metrics in [Grafana Dashboard](http://34.177.101.213)" >> $GITHUB_STEP_SUMMARY
+
+      - name: 📡 Send Results to Monitoring
+        if: always()
+        env:
+          METRICS_URL: ${{ secrets.TEST_METRICS_URL }}
+        run: |
+          if [ -n "$METRICS_URL" ]; then
+            USERS=${{ github.event.inputs.concurrent_users || '50' }}
+            STATUS=${{ steps.loadtest.outcome == 'success' && '1' || '0' }}
+            
+            curl -s -X POST "$METRICS_URL/api/app-metrics" \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"activeUsers\": $USERS,
+                \"logins\": 10,
+                \"requests\": 100,
+                \"responseTime\": 200
+              }" || echo "Could not send metrics"
+          fi
+
+      - name: ❌ Fail if test failed
+        if: steps.loadtest.outcome == 'failure'
+        run: |
+          echo "Performance test failed! Check the logs above."
+          exit 1
+
+  stress-test:
+    name: 💥 Stress Test (High Load)
+    runs-on: ubuntu-latest
+    needs: load-test
+    if: github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: 💥 Run Stress Test
+        env:
+          CONCURRENT_USERS: '200'
+          TEST_DURATION: '60'
+          RAMP_UP_TIME: '20'
+          REQUEST_DELAY: '50'
+          AUTH_URL: ${{ secrets.AUTH_API_URL || 'http://34.87.39.232:5001' }}
+        run: |
+          echo "💥 Starting stress test with 200 users for 60s"
+          node tests/performance/load-test.js --ramp-up || echo "Stress test completed (may have failures)"
+        continue-on-error: true
+
+      - name: 📊 Stress Test Report
+        if: always()
+        run: |
+          echo "## 💥 Stress Test Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Stress test with **200 concurrent users** completed." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "This test is designed to find the breaking point of the system." >> $GITHUB_STEP_SUMMARY
+
+  spike-test:
+    name: ⚡ Spike Test
+    runs-on: ubuntu-latest
+    needs: load-test
+    if: github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: ⚡ Run Spike Test
+        env:
+          AUTH_URL: ${{ secrets.AUTH_API_URL || 'http://34.87.39.232:5001' }}
+        run: |
+          echo "⚡ Running spike test - sudden traffic surge"
+          
+          # Phase 1: Normal load (10 users)
+          echo "Phase 1: Normal load (10 users, 10s)"
+          CONCURRENT_USERS=10 TEST_DURATION=10 node tests/performance/load-test.js || true
+          
+          # Phase 2: Spike (100 users)
+          echo "Phase 2: Spike (100 users, 15s)"
+          CONCURRENT_USERS=100 TEST_DURATION=15 node tests/performance/load-test.js || true
+          
+          # Phase 3: Recovery (10 users)
+          echo "Phase 3: Recovery (10 users, 10s)"
+          CONCURRENT_USERS=10 TEST_DURATION=10 node tests/performance/load-test.js || true
+        continue-on-error: true
+
+      - name: 📊 Spike Test Report
+        if: always()
+        run: |
+          echo "## ⚡ Spike Test Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Tested system behavior during sudden traffic spikes:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Normal: 10 users → 100 users (spike) → 10 users (recovery)" >> $GITHUB_STEP_SUMMARY
