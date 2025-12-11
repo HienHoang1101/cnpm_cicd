@@ -280,6 +280,10 @@ config:
   jwtExpiresIn: "7d"
   corsOrigin: "*"
 
+# External Secrets Operator (Phase 2)
+externalSecrets:
+  enabled: false
+
 # Secrets (will be overridden by External Secrets Operator)
 secrets:
   jwtSecret: "change-me-in-production"
