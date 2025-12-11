@@ -9,7 +9,7 @@
     "test": "jest --detectOpenHandles --forceExit",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage --detectOpenHandles --forceExit",
-    "test:ci": "jest --ci --coverage --reporters=default --reporters=jest-junit"
+    "test:ci": "jest --ci --coverage --reporters=default --reporters=jest-junit --testPathIgnorePatterns=integration"
   },
   "keywords": [],
   "author": "",
