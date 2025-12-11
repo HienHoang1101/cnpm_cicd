@@ -1,0 +1,79 @@
+# Development environment overrides
+global:
+  environment: development
+  namespace: fastfood-dev
+
+# Reduce replicas for dev
+authService:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+
+orderService:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+
+restaurantService:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+
+paymentService:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+
+notificationService:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+
+adminService:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+
+# Reduce resources for dev
+authService:
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "50m"
+    limits:
+      memory: "128Mi"
+      cpu: "200m"
+
+# Ingress for dev
+ingress:
+  hosts:
+    - host: api.fastfood-dev.local
+
+# Smaller MongoDB for dev
+mongodb:
+  persistence:
+    size: 5Gi
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "250m"
+
+# Smaller Redis for dev
+redis:
+  master:
+    persistence:
+      size: 2Gi
+    resources:
+      requests:
+        memory: "64Mi"
+        cpu: "50m"
+      limits:
+        memory: "128Mi"
+        cpu: "100m"
+
+# Disable PDB in dev
+podDisruptionBudget:
+  enabled: false

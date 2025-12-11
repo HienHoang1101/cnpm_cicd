@@ -452,6 +452,57 @@ Configure in `alertmanager/alertmanager.yml`:
 
 ---
 
+## 🚀 Phase 1: GitOps & Automation (NEW!)
+
+### ✅ Đã Triển Khai
+
+Phase 1 đã hoàn thành với 3 components chính:
+
+#### 1. Helm Charts
+- Package management cho Kubernetes
+- Multi-environment support (dev/prod)
+- Auto-scaling configuration
+- Resource management
+- 📖 **Docs:** `helm/fastfood/README.md`
+
+#### 2. ArgoCD (GitOps)
+- Automated deployment from Git
+- Self-healing applications
+- Rollback capabilities
+- Multi-environment management
+- 📖 **Docs:** `argocd/README.md`
+
+#### 3. Cert-Manager (TLS)
+- Automated TLS certificate issuance
+- Let's Encrypt integration
+- Auto-renewal
+- Wildcard certificate support
+- 📖 **Docs:** `cert-manager/README.md`
+
+### 🎯 Quick Start
+
+```bash
+# Deploy Phase 1 to development
+./scripts/deploy-phase1.sh --environment dev
+
+# Deploy Phase 1 to production
+./scripts/deploy-phase1.sh --environment prod
+```
+
+### 📚 Phase 1 Documentation
+
+- **Quick Start (15 min):** [QUICKSTART_PHASE1.md](QUICKSTART_PHASE1.md)
+- **Full Deployment Guide:** [PHASE1_DEPLOYMENT.md](PHASE1_DEPLOYMENT.md)
+- **Complete Overview:** [DEVOPS_PHASE1_COMPLETE.md](DEVOPS_PHASE1_COMPLETE.md)
+- **Documentation Index:** [PHASE1_INDEX.md](PHASE1_INDEX.md)
+
+### ⏭️ Next: Phase 2
+- External Secrets Operator
+- Velero Backup & Disaster Recovery
+- Service Mesh (Istio)
+
+---
+
 ## 📚 Best Practices
 
 ### 1. Code Quality

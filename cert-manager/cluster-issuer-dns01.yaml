@@ -1,0 +1,36 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod-dns01
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: devops@fastfood.com
+    privateKeySecretRef:
+      name: letsencrypt-prod-dns01-account-key
+    
+    solvers:
+      # Cloudflare DNS-01 solver for wildcard certificates
+      - dns01:
+          cloudflare:
+            email: your-cloudflare-email@example.com
+            apiTokenSecretRef:
+              name: cloudflare-api-token
+              key: api-token
+        selector:
+          dnsZones:
+            - "fastfood.com"
+            - "*.fastfood.com"
+
+---
+# Example: Create Cloudflare API token secret
+# kubectl create secret generic cloudflare-api-token \
+#   --from-literal=api-token=<your-cloudflare-api-token> \
+#   -n cert-manager
+
+# Alternative DNS providers:
+# - Route53 (AWS)
+# - Google Cloud DNS
+# - Azure DNS
+# - DigitalOcean
+# See: https://cert-manager.io/docs/configuration/acme/dns01/

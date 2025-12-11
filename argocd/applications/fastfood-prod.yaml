@@ -1,0 +1,50 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fastfood-prod
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: fastfood-production
+  
+  source:
+    repoURL: https://github.com/HienHoang1101/cnpm_cicd.git
+    targetRevision: main
+    path: helm/fastfood
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-prod.yaml
+      parameters:
+        - name: global.environment
+          value: production
+        - name: global.namespace
+          value: fastfood
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fastfood
+  
+  syncPolicy:
+    automated:
+      prune: false  # Manual prune in production
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+  
+  revisionHistoryLimit: 20
+  
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas

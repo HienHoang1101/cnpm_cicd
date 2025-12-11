@@ -1,0 +1,70 @@
+# Example Certificate Resource
+# This creates a TLS certificate for your domain
+
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: fastfood-tls
+  namespace: fastfood
+spec:
+  # Secret name where certificate will be stored
+  secretName: fastfood-tls-secret
+  
+  # Certificate duration (default: 90 days)
+  duration: 2160h # 90 days
+  
+  # Renew certificate 30 days before expiration
+  renewBefore: 720h # 30 days
+  
+  # Subject information
+  subject:
+    organizations:
+      - FastFood Delivery
+  
+  # Common name (optional, first dnsName is used if not specified)
+  commonName: api.fastfood.com
+  
+  # DNS names (SANs - Subject Alternative Names)
+  dnsNames:
+    - api.fastfood.com
+    - www.fastfood.com
+    - fastfood.com
+  
+  # Reference to ClusterIssuer
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+    group: cert-manager.io
+  
+  # Private key configuration
+  privateKey:
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  
+  # Usages
+  usages:
+    - digital signature
+    - key encipherment
+    - server auth
+
+---
+# Example: Wildcard Certificate
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: wildcard-fastfood-tls
+  namespace: fastfood
+spec:
+  secretName: wildcard-fastfood-tls-secret
+  duration: 2160h
+  renewBefore: 720h
+  dnsNames:
+    - "*.fastfood.com"
+    - "fastfood.com"
+  issuerRef:
+    name: letsencrypt-prod-dns01
+    kind: ClusterIssuer
+  privateKey:
+    algorithm: RSA
+    size: 2048

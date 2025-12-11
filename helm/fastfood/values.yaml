@@ -1,0 +1,305 @@
+# Default values for fastfood
+# This is a YAML-formatted file.
+
+# Global settings
+global:
+  namespace: fastfood
+  environment: production
+  imageRegistry: ghcr.io
+  imagePullPolicy: IfNotPresent
+  storageClass: standard
+
+# Common labels
+commonLabels:
+  app.kubernetes.io/part-of: fastfood
+  app.kubernetes.io/managed-by: helm
+
+# Auth Service
+authService:
+  enabled: true
+  name: auth-service
+  replicaCount: 2
+  image:
+    repository: ghcr.io/hienhoang1101/fastfood/auth-service
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 5001
+    targetPort: 5001
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "300m"
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  env:
+    PORT: "5001"
+    NODE_ENV: production
+  healthCheck:
+    enabled: true
+    path: /health
+    initialDelaySeconds: 30
+    periodSeconds: 10
+
+# Order Service
+orderService:
+  enabled: true
+  name: order-service
+  replicaCount: 2
+  image:
+    repository: ghcr.io/hienhoang1101/fastfood/order-service
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 5002
+    targetPort: 5002
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "300m"
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+  env:
+    PORT: "5002"
+    NODE_ENV: production
+
+# Restaurant Service
+restaurantService:
+  enabled: true
+  name: restaurant-service
+  replicaCount: 2
+  image:
+    repository: ghcr.io/hienhoang1101/fastfood/restaurant-service
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 5003
+    targetPort: 5003
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "300m"
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+  env:
+    PORT: "5003"
+    NODE_ENV: production
+
+# Payment Service
+paymentService:
+  enabled: true
+  name: payment-service
+  replicaCount: 2
+  image:
+    repository: ghcr.io/hienhoang1101/fastfood/payment-service
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 5005
+    targetPort: 5005
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "300m"
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+  env:
+    PORT: "5005"
+    NODE_ENV: production
+
+# Notification Service
+notificationService:
+  enabled: true
+  name: notification-service
+  replicaCount: 2
+  image:
+    repository: ghcr.io/hienhoang1101/fastfood/notification-service
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 5006
+    targetPort: 5006
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "300m"
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+  env:
+    PORT: "5006"
+    NODE_ENV: production
+
+# Admin Service
+adminService:
+  enabled: true
+  name: admin-service
+  replicaCount: 2
+  image:
+    repository: ghcr.io/hienhoang1101/fastfood/admin-service
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 5008
+    targetPort: 5008
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "300m"
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+  env:
+    PORT: "5008"
+    NODE_ENV: production
+
+# Ingress Configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: api.fastfood.local
+      paths:
+        - path: /auth
+          pathType: Prefix
+          service: auth-service
+          port: 5001
+        - path: /users
+          pathType: Prefix
+          service: auth-service
+          port: 5001
+        - path: /orders
+          pathType: Prefix
+          service: order-service
+          port: 5002
+        - path: /restaurants
+          pathType: Prefix
+          service: restaurant-service
+          port: 5003
+        - path: /payments
+          pathType: Prefix
+          service: payment-service
+          port: 5005
+        - path: /notifications
+          pathType: Prefix
+          service: notification-service
+          port: 5006
+  tls:
+    enabled: false
+    secretName: fastfood-tls-secret
+
+# MongoDB (using Bitnami chart)
+mongodb:
+  enabled: true
+  auth:
+    enabled: true
+    rootPassword: "mongodb-root-password"
+    username: fastfood
+    password: "mongodb-password"
+    database: fastfood
+  architecture: standalone
+  persistence:
+    enabled: true
+    size: 10Gi
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+# Redis (using Bitnami chart)
+redis:
+  enabled: true
+  auth:
+    enabled: false
+  master:
+    persistence:
+      enabled: true
+      size: 5Gi
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "256Mi"
+        cpu: "200m"
+
+# ConfigMap data
+config:
+  nodeEnv: production
+  jwtExpiresIn: "7d"
+  corsOrigin: "*"
+
+# Secrets (will be overridden by External Secrets Operator)
+secrets:
+  jwtSecret: "change-me-in-production"
+  mongodbPassword: "change-me-in-production"
+  redisPassword: ""
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Network Policies
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+
+# Service Monitor for Prometheus
+serviceMonitor:
+  enabled: true
+  interval: 30s
+  scrapeTimeout: 10s

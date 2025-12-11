@@ -1,0 +1,47 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: fastfood-production
+  namespace: argocd
+spec:
+  description: FastFood Delivery Production Project
+  
+  sourceRepos:
+    - https://github.com/HienHoang1101/cnpm_cicd.git
+    - https://charts.bitnami.com/bitnami
+  
+  destinations:
+    - namespace: fastfood
+      server: https://kubernetes.default.svc
+    - namespace: fastfood-monitoring
+      server: https://kubernetes.default.svc
+  
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+    - group: ''
+      kind: PersistentVolume
+    - group: 'rbac.authorization.k8s.io'
+      kind: ClusterRole
+    - group: 'rbac.authorization.k8s.io'
+      kind: ClusterRoleBinding
+  
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  
+  roles:
+    - name: admin
+      description: Admin privileges for production
+      policies:
+        - p, proj:fastfood-production:admin, applications, *, fastfood-production/*, allow
+      groups:
+        - fastfood-admins
+    
+    - name: developer
+      description: Read-only access for developers
+      policies:
+        - p, proj:fastfood-production:developer, applications, get, fastfood-production/*, allow
+        - p, proj:fastfood-production:developer, applications, sync, fastfood-production/*, deny
+      groups:
+        - fastfood-developers

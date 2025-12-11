@@ -1,0 +1,60 @@
+# Cert-Manager Installation Manifest
+# This file contains the installation steps for cert-manager
+
+# Step 1: Install CRDs
+# kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.3/cert-manager.crds.yaml
+
+# Step 2: Create namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cert-manager
+
+---
+# Step 3: Install cert-manager
+# kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.3/cert-manager.yaml
+
+# Or using Helm:
+# helm repo add jetstack https://charts.jetstack.io
+# helm repo update
+# helm install cert-manager jetstack/cert-manager \
+#   --namespace cert-manager \
+#   --version v1.13.3 \
+#   --set installCRDs=true
+
+---
+# ServiceMonitor for Prometheus (optional)
+apiVersion: v1
+kind: Service
+metadata:
+  name: cert-manager-metrics
+  namespace: cert-manager
+  labels:
+    app: cert-manager
+spec:
+  type: ClusterIP
+  ports:
+    - name: metrics
+      port: 9402
+      targetPort: 9402
+      protocol: TCP
+  selector:
+    app: cert-manager
+
+---
+# Prometheus ServiceMonitor (if using Prometheus Operator)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: cert-manager
+  namespace: cert-manager
+  labels:
+    app: cert-manager
+spec:
+  selector:
+    matchLabels:
+      app: cert-manager
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics

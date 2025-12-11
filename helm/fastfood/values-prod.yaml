@@ -1,0 +1,77 @@
+# Production environment overrides
+global:
+  environment: production
+  namespace: fastfood
+
+# Production replicas
+authService:
+  replicaCount: 3
+  autoscaling:
+    minReplicas: 3
+    maxReplicas: 10
+
+orderService:
+  replicaCount: 3
+  autoscaling:
+    minReplicas: 3
+    maxReplicas: 10
+
+restaurantService:
+  replicaCount: 3
+  autoscaling:
+    minReplicas: 3
+    maxReplicas: 10
+
+paymentService:
+  replicaCount: 3
+  autoscaling:
+    minReplicas: 3
+    maxReplicas: 10
+
+notificationService:
+  replicaCount: 3
+  autoscaling:
+    minReplicas: 3
+    maxReplicas: 10
+
+# Production ingress with TLS
+ingress:
+  hosts:
+    - host: api.fastfood.com
+  tls:
+    enabled: true
+    secretName: fastfood-tls-secret
+
+# Production MongoDB with replication
+mongodb:
+  architecture: replicaset
+  replicaCount: 3
+  persistence:
+    size: 50Gi
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "500m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+
+# Production Redis with sentinel
+redis:
+  sentinel:
+    enabled: true
+  master:
+    persistence:
+      size: 20Gi
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+
+# Enable PDB in production
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2

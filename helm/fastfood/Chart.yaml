@@ -1,0 +1,23 @@
+apiVersion: v2
+name: fastfood
+description: FastFood Delivery Platform - Microservices Helm Chart
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - fastfood
+  - microservices
+  - delivery
+home: https://github.com/HienHoang1101/cnpm_cicd
+maintainers:
+  - name: FastFood DevOps Team
+    email: devops@fastfood.com
+dependencies:
+  - name: mongodb
+    version: "13.x.x"
+    repository: https://charts.bitnami.com/bitnami
+    condition: mongodb.enabled
+  - name: redis
+    version: "18.x.x"
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled

@@ -1,0 +1,63 @@
+# ArgoCD Installation Guide
+# This file contains instructions and manifests for installing ArgoCD
+
+# Step 1: Create ArgoCD namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+
+---
+# Step 2: Install ArgoCD
+# Run: kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+# Step 3: Expose ArgoCD Server
+apiVersion: v1
+kind: Service
+metadata:
+  name: argocd-server-nodeport
+  namespace: argocd
+spec:
+  type: NodePort
+  ports:
+    - port: 80
+      targetPort: 8080
+      nodePort: 30080
+      protocol: TCP
+      name: http
+    - port: 443
+      targetPort: 8080
+      nodePort: 30443
+      protocol: TCP
+      name: https
+  selector:
+    app.kubernetes.io/name: argocd-server
+
+---
+# Alternative: Ingress for ArgoCD
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd-server-ingress
+  namespace: argocd
+  annotations:
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: argocd.fastfood.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: argocd-server
+                port:
+                  number: 443
+  tls:
+    - hosts:
+        - argocd.fastfood.local
+      secretName: argocd-server-tls

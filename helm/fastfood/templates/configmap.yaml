@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "fastfood.fullname" . }}-config
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "fastfood.labels" . | nindent 4 }}
+data:
+  NODE_ENV: {{ .Values.config.nodeEnv | quote }}
+  MONGO_URI: {{ include "fastfood.mongodbUri" . | quote }}
+  MONGODB_URI: {{ include "fastfood.mongodbUri" . | quote }}
+  REDIS_URL: {{ include "fastfood.redisUri" . | quote }}
+  JWT_EXPIRES_IN: {{ .Values.config.jwtExpiresIn | quote }}
+  CORS_ORIGIN: {{ .Values.config.corsOrigin | quote }}
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "fastfood.fullname" . }}-service-urls
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "fastfood.labels" . | nindent 4 }}
+data:
+  AUTH_SERVICE_URL: "http://{{ .Values.authService.name }}:{{ .Values.authService.service.port }}"
+  ORDER_SERVICE_URL: "http://{{ .Values.orderService.name }}:{{ .Values.orderService.service.port }}"
+  RESTAURANT_SERVICE_URL: "http://{{ .Values.restaurantService.name }}:{{ .Values.restaurantService.service.port }}"
+  PAYMENT_SERVICE_URL: "http://{{ .Values.paymentService.name }}:{{ .Values.paymentService.service.port }}"
+  NOTIFICATION_SERVICE_URL: "http://{{ .Values.notificationService.name }}:{{ .Values.notificationService.service.port }}"
+  ADMIN_SERVICE_URL: "http://{{ .Values.adminService.name }}:{{ .Values.adminService.service.port }}"

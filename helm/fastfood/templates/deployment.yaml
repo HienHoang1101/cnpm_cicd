@@ -1,0 +1,71 @@
+{{- range $serviceName, $service := dict "authService" .Values.authService "orderService" .Values.orderService "restaurantService" .Values.restaurantService "paymentService" .Values.paymentService "notificationService" .Values.notificationService "adminService" .Values.adminService }}
+{{- if $service.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $service.name }}
+  namespace: {{ $.Values.global.namespace }}
+  labels:
+    {{- include "fastfood.labels" $ | nindent 4 }}
+    app: {{ $service.name }}
+spec:
+  replicas: {{ $service.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ $service.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ $service.name }}
+        {{- include "fastfood.selectorLabels" $ | nindent 8 }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ $service.service.port | quote }}
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: {{ $service.name }}
+          image: "{{ $service.image.repository }}:{{ $service.image.tag }}"
+          imagePullPolicy: {{ $service.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ $service.service.targetPort }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "fastfood.fullname" $ }}-config
+            - configMapRef:
+                name: {{ include "fastfood.fullname" $ }}-service-urls
+          env:
+            - name: PORT
+              value: {{ $service.env.PORT | quote }}
+            - name: NODE_ENV
+              value: {{ $service.env.NODE_ENV | quote }}
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "fastfood.fullname" $ }}-secrets
+                  key: JWT_SECRET
+          resources:
+            {{- toYaml $service.resources | nindent 12 }}
+          {{- if $service.healthCheck.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ $service.healthCheck.path }}
+              port: {{ $service.service.targetPort }}
+            initialDelaySeconds: {{ $service.healthCheck.initialDelaySeconds }}
+            periodSeconds: {{ $service.healthCheck.periodSeconds }}
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: {{ $service.healthCheck.path }}
+              port: {{ $service.service.targetPort }}
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          {{- end }}
+{{- end }}
+{{- end }}
