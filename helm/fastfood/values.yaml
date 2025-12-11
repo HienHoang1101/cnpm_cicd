@@ -77,6 +77,11 @@ orderService:
   env:
     PORT: "5002"
     NODE_ENV: production
+  healthCheck:
+    enabled: true
+    path: /health
+    initialDelaySeconds: 30
+    periodSeconds: 10
 
 # Restaurant Service
 restaurantService:
@@ -106,6 +111,11 @@ restaurantService:
   env:
     PORT: "5003"
     NODE_ENV: production
+  healthCheck:
+    enabled: true
+    path: /health
+    initialDelaySeconds: 30
+    periodSeconds: 10
 
 # Payment Service
 paymentService:
@@ -135,6 +145,11 @@ paymentService:
   env:
     PORT: "5005"
     NODE_ENV: production
+  healthCheck:
+    enabled: true
+    path: /health
+    initialDelaySeconds: 30
+    periodSeconds: 10
 
 # Notification Service
 notificationService:
@@ -164,6 +179,11 @@ notificationService:
   env:
     PORT: "5006"
     NODE_ENV: production
+  healthCheck:
+    enabled: true
+    path: /health
+    initialDelaySeconds: 30
+    periodSeconds: 10
 
 # Admin Service
 adminService:
@@ -193,6 +213,11 @@ adminService:
   env:
     PORT: "5008"
     NODE_ENV: production
+  healthCheck:
+    enabled: true
+    path: /health
+    initialDelaySeconds: 30
+    periodSeconds: 10
 
 # Ingress Configuration
 ingress:
