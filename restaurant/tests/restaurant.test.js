@@ -95,12 +95,12 @@ describe('Restaurant Service', () => {
     });
 
     // COMMENTED OUT - Testing metrics decrease
-    // it('should toggle menu item availability', async () => {
-    //   const item = { ...mockMenuItem };
-    //   item.isAvailable = false;
+    it('should toggle menu item availability', async () => {
+      const item = { ...mockMenuItem };
+      item.isAvailable = false;
 
-    //   expect(item.isAvailable).toBe(false);
-    // });
+      expect(item.isAvailable).toBe(false);
+    });
 
     // COMMENTED OUT - Testing metrics decrease
     // it('should delete menu item', async () => {
