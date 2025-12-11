@@ -87,6 +87,21 @@ jobs:
       fail-fast: false
       matrix:
         service: [auth, order, restaurant, payment-service, notification-service, admin-service, food-delivery-server]
+        include:
+          - service: auth
+            metric_name: auth
+          - service: order
+            metric_name: order
+          - service: restaurant
+            metric_name: restaurant
+          - service: payment-service
+            metric_name: payment
+          - service: notification-service
+            metric_name: notification
+          - service: admin-service
+            metric_name: admin
+          - service: food-delivery-server
+            metric_name: server
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -181,10 +196,12 @@ jobs:
           # Send to cloud monitoring (if available)
           METRICS_URL="${{ secrets.TEST_METRICS_URL }}"
           if [ -n "$METRICS_URL" ]; then
+            # Use metric_name for consistent naming
+            SERVICE_NAME="${{ matrix.metric_name }}"
             curl -X POST "$METRICS_URL/api/report" \
               -H "Content-Type: application/json" \
               -d "{
-                \"service\": \"${{ matrix.service }}\",
+                \"service\": \"$SERVICE_NAME\",
                 \"results\": {
                   \"total\": $TOTAL,
                   \"passed\": $PASSED,
