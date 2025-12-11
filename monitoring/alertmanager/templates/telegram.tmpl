@@ -1,0 +1,56 @@
+{{ define "telegram.default.message" }}
+{{ if eq .Status "firing" }}🔔 <b>ALERT FIRING</b>{{ else }}✅ <b>RESOLVED</b>{{ end }}
+
+<b>📊 FastFood Delivery Monitoring</b>
+
+{{ range .Alerts }}
+━━━━━━━━━━━━━━━━━━━━
+<b>Alert:</b> {{ .Labels.alertname }}
+<b>Severity:</b> {{ if .Labels.severity }}{{ .Labels.severity }}{{ else }}info{{ end }}
+{{ if .Labels.service }}<b>Service:</b> {{ .Labels.service }}{{ end }}
+{{ if .Labels.instance }}<b>Instance:</b> {{ .Labels.instance }}{{ end }}
+
+<b>Summary:</b> {{ .Annotations.summary }}
+<b>Description:</b> {{ .Annotations.description }}
+
+<b>Started:</b> {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+{{ if .EndsAt }}<b>Ended:</b> {{ .EndsAt.Format "2006-01-02 15:04:05" }}{{ end }}
+{{ end }}
+
+🔗 <a href="{{ .ExternalURL }}">View in Alertmanager</a>
+{{ end }}
+
+{{ define "telegram.critical.message" }}
+🚨🚨🚨 <b>CRITICAL ALERT</b> 🚨🚨🚨
+
+<b>⚠️ IMMEDIATE ACTION REQUIRED</b>
+
+{{ range .Alerts }}
+━━━━━━━━━━━━━━━━━━━━
+<b>Alert:</b> {{ .Labels.alertname }}
+<b>Severity:</b> CRITICAL
+{{ if .Labels.service }}<b>Service:</b> {{ .Labels.service }}{{ end }}
+{{ if .Labels.instance }}<b>Instance:</b> {{ .Labels.instance }}{{ end }}
+
+<b>Summary:</b> {{ .Annotations.summary }}
+<b>Description:</b> {{ .Annotations.description }}
+
+<b>Started:</b> {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+{{ end }}
+
+🔗 <a href="{{ .ExternalURL }}">View in Alertmanager</a>
+
+<b>📞 Please check immediately!</b>
+{{ end }}
+
+{{ define "telegram.resolved.message" }}
+✅ <b>ALERT RESOLVED</b>
+
+{{ range .Alerts }}
+<b>Alert:</b> {{ .Labels.alertname }}
+{{ if .Labels.service }}<b>Service:</b> {{ .Labels.service }}{{ end }}
+<b>Duration:</b> {{ .StartsAt.Format "15:04:05" }} - {{ .EndsAt.Format "15:04:05" }}
+{{ end }}
+
+<i>All systems back to normal.</i>
+{{ end }}

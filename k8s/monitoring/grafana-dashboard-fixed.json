@@ -1,0 +1,274 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "fastfood-cicd-services-v2",
+    "title": "CI/CD & Service Monitoring (Fixed)",
+    "tags": ["cicd", "services", "monitoring", "fastfood"],
+    "timezone": "",
+    "schemaVersion": 38,
+    "refresh": "30s",
+    "panels": [
+      {
+        "collapsed": false,
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+        "id": 1,
+        "title": "🔄 CI/CD Pipeline Overview",
+        "type": "row"
+      },
+      {
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {"mode": "absolute", "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 70},
+              {"color": "green", "value": 90}
+            ]},
+            "unit": "percent"
+          }
+        },
+        "gridPos": {"h": 6, "w": 6, "x": 0, "y": 1},
+        "id": 2,
+        "options": {"colorMode": "value", "graphMode": "area", "reduceOptions": {"calcs": ["lastNotNull"]}},
+        "targets": [{"expr": "test_pass_rate", "refId": "A"}],
+        "title": "🎯 Overall Pass Rate",
+        "type": "stat"
+      },
+      {
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "fieldConfig": {"defaults": {"color": {"fixedColor": "blue", "mode": "fixed"}}},
+        "gridPos": {"h": 6, "w": 3, "x": 6, "y": 1},
+        "id": 3,
+        "options": {"colorMode": "value", "graphMode": "none", "reduceOptions": {"calcs": ["lastNotNull"]}},
+        "targets": [{"expr": "test_total", "refId": "A"}],
+        "title": "Total Tests",
+        "type": "stat"
+      },
+      {
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "fieldConfig": {"defaults": {"color": {"fixedColor": "green", "mode": "fixed"}}},
+        "gridPos": {"h": 6, "w": 3, "x": 9, "y": 1},
+        "id": 4,
+        "options": {"colorMode": "value", "graphMode": "none", "reduceOptions": {"calcs": ["lastNotNull"]}},
+        "targets": [{"expr": "test_passed", "refId": "A"}],
+        "title": "Passed",
+        "type": "stat"
+      },
+      {
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}}},
+        "gridPos": {"h": 6, "w": 3, "x": 12, "y": 1},
+        "id": 5,
+        "options": {"colorMode": "value", "graphMode": "none", "reduceOptions": {"calcs": ["lastNotNull"]}},
+        "targets": [{"expr": "test_failed", "refId": "A"}],
+        "title": "Failed",
+        "type": "stat"
+      },
+      {
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}}},
+        "gridPos": {"h": 6, "w": 2, "x": 15, "y": 1},
+        "id": 6,
+        "options": {"colorMode": "value", "graphMode": "area", "reduceOptions": {"calcs": ["lastNotNull"]}},
+        "targets": [{"expr": "sonar_bugs", "refId": "A"}],
+        "title": "Bugs",
+        "type": "stat"
+      },
+      {
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}}},
+        "gridPos": {"h": 6, "w": 2, "x": 17, "y": 1},
+        "id": 7,
+        "options": {"colorMode": "value", "graphMode": "area", "reduceOptions": {"calcs": ["lastNotNull"]}},
+        "targets": [{"expr": "sonar_vulnerabilities", "refId": "A"}],
+        "title": "Vulns",
+        "type": "stat"
+      },
+      {
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 50}]}}},
+        "gridPos": {"h": 6, "w": 2, "x": 19, "y": 1},
+        "id": 8,
+        "options": {"colorMode": "value", "graphMode": "area", "reduceOptions": {"calcs": ["lastNotNull"]}},
+        "targets": [{"expr": "sonar_code_smells", "refId": "A"}],
+        "title": "Smells",
+        "type": "stat"
+      },
+      {
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "max": 100, "min": 0, "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "yellow", "value": 50}, {"color": "green", "value": 80}]}, "unit": "percent"}},
+        "gridPos": {"h": 6, "w": 3, "x": 21, "y": 1},
+        "id": 9,
+        "options": {"showThresholdLabels": false, "showThresholdMarkers": true},
+        "targets": [{"expr": "sonar_coverage", "refId": "A"}],
+        "title": "Coverage",
+        "type": "gauge"
+      },
+      {
+        "collapsed": false,
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 7},
+        "id": 11,
+        "title": "📊 Service Status (Tests per Service)",
+        "type": "row"
+      },
+      {
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}}},
+        "gridPos": {"h": 5, "w": 4, "x": 0, "y": 8},
+        "id": 12,
+        "options": {"colorMode": "background", "graphMode": "area", "reduceOptions": {"calcs": ["lastNotNull"]}},
+        "targets": [
+          {"expr": "test_service_passed{service=\"auth\"}", "legendFormat": "Passed", "refId": "A"},
+          {"expr": "test_service_failed{service=\"auth\"}", "legendFormat": "Failed", "refId": "B"}
+        ],
+        "title": "🔐 Auth Service",
+        "type": "stat"
+      },
+      {
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}}},
+        "gridPos": {"h": 5, "w": 4, "x": 4, "y": 8},
+        "id": 13,
+        "options": {"colorMode": "background", "graphMode": "area", "reduceOptions": {"calcs": ["lastNotNull"]}},
+        "targets": [
+          {"expr": "test_service_passed{service=\"order\"}", "legendFormat": "Passed", "refId": "A"},
+          {"expr": "test_service_failed{service=\"order\"}", "legendFormat": "Failed", "refId": "B"}
+        ],
+        "title": "📦 Order Service",
+        "type": "stat"
+      },
+      {
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}}},
+        "gridPos": {"h": 5, "w": 4, "x": 8, "y": 8},
+        "id": 14,
+        "options": {"colorMode": "background", "graphMode": "area", "reduceOptions": {"calcs": ["lastNotNull"]}},
+        "targets": [
+          {"expr": "test_service_passed{service=\"payment\"}", "legendFormat": "Passed", "refId": "A"},
+          {"expr": "test_service_failed{service=\"payment\"}", "legendFormat": "Failed", "refId": "B"}
+        ],
+        "title": "💳 Payment Service",
+        "type": "stat"
+      },
+      {
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}}},
+        "gridPos": {"h": 5, "w": 4, "x": 12, "y": 8},
+        "id": 15,
+        "options": {"colorMode": "background", "graphMode": "area", "reduceOptions": {"calcs": ["lastNotNull"]}},
+        "targets": [
+          {"expr": "test_service_passed{service=\"restaurant\"}", "legendFormat": "Passed", "refId": "A"},
+          {"expr": "test_service_failed{service=\"restaurant\"}", "legendFormat": "Failed", "refId": "B"}
+        ],
+        "title": "🍔 Restaurant Service",
+        "type": "stat"
+      },
+      {
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}}},
+        "gridPos": {"h": 5, "w": 4, "x": 16, "y": 8},
+        "id": 16,
+        "options": {"colorMode": "background", "graphMode": "area", "reduceOptions": {"calcs": ["lastNotNull"]}},
+        "targets": [
+          {"expr": "test_service_passed{service=\"notification\"}", "legendFormat": "Passed", "refId": "A"},
+          {"expr": "test_service_failed{service=\"notification\"}", "legendFormat": "Failed", "refId": "B"}
+        ],
+        "title": "🔔 Notification Service",
+        "type": "stat"
+      },
+      {
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}}},
+        "gridPos": {"h": 5, "w": 4, "x": 20, "y": 8},
+        "id": 17,
+        "options": {"colorMode": "background", "graphMode": "area", "reduceOptions": {"calcs": ["lastNotNull"]}},
+        "targets": [
+          {"expr": "test_service_passed{service=\"admin\"}", "legendFormat": "Passed", "refId": "A"},
+          {"expr": "test_service_failed{service=\"admin\"}", "legendFormat": "Failed", "refId": "B"}
+        ],
+        "title": "🛠️ Admin Service",
+        "type": "stat"
+      },
+      {
+        "collapsed": false,
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 13},
+        "id": 18,
+        "title": "📈 Detailed Service Metrics",
+        "type": "row"
+      },
+      {
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}}},
+        "gridPos": {"h": 6, "w": 8, "x": 0, "y": 14},
+        "id": 19,
+        "options": {"displayMode": "gradient", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"]}, "showUnfilled": true},
+        "targets": [{"expr": "test_service_passed", "legendFormat": "{{service}}", "refId": "A"}],
+        "title": "✅ Passed Tests by Service",
+        "type": "bargauge"
+      },
+      {
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}}},
+        "gridPos": {"h": 6, "w": 8, "x": 8, "y": 14},
+        "id": 20,
+        "options": {"displayMode": "lcd", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"]}, "showUnfilled": true},
+        "targets": [{"expr": "test_service_failed", "legendFormat": "{{service}}", "refId": "A"}],
+        "title": "❌ Failed Tests by Service",
+        "type": "bargauge"
+      },
+      {
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "fieldConfig": {
+          "overrides": [
+            {"matcher": {"id": "byName", "options": "Passed"}, "properties": [{"id": "color", "value": {"fixedColor": "green", "mode": "fixed"}}]},
+            {"matcher": {"id": "byName", "options": "Failed"}, "properties": [{"id": "color", "value": {"fixedColor": "red", "mode": "fixed"}}]},
+            {"matcher": {"id": "byName", "options": "Skipped"}, "properties": [{"id": "color", "value": {"fixedColor": "yellow", "mode": "fixed"}}]}
+          ]
+        },
+        "gridPos": {"h": 6, "w": 8, "x": 16, "y": 14},
+        "id": 21,
+        "options": {"displayLabels": ["name", "percent"], "legend": {"displayMode": "table", "placement": "right", "showLegend": true}, "pieType": "donut"},
+        "targets": [
+          {"expr": "test_passed", "legendFormat": "Passed", "refId": "A"},
+          {"expr": "test_failed", "legendFormat": "Failed", "refId": "B"},
+          {"expr": "test_skipped", "legendFormat": "Skipped", "refId": "C"}
+        ],
+        "title": "📊 Test Distribution",
+        "type": "piechart"
+      },
+      {
+        "collapsed": false,
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 20},
+        "id": 22,
+        "title": "📈 Trends",
+        "type": "row"
+      },
+      {
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"drawStyle": "line", "fillOpacity": 20, "lineWidth": 2}}},
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 21},
+        "id": 23,
+        "options": {"legend": {"displayMode": "table", "placement": "bottom", "showLegend": true}},
+        "targets": [
+          {"expr": "test_passed", "legendFormat": "Passed", "refId": "A"},
+          {"expr": "test_failed", "legendFormat": "Failed", "refId": "B"}
+        ],
+        "title": "📈 Test Results Trend",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {"type": "prometheus", "uid": "prometheus"},
+        "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"drawStyle": "line", "fillOpacity": 10, "lineWidth": 2}, "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "yellow", "value": 70}, {"color": "green", "value": 90}]}, "unit": "percent"}},
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 21},
+        "id": 24,
+        "options": {"legend": {"displayMode": "table", "placement": "bottom", "showLegend": true}},
+        "targets": [{"expr": "test_pass_rate", "legendFormat": "Pass Rate %", "refId": "A"}],
+        "title": "📊 Pass Rate Trend",
+        "type": "timeseries"
+      }
+    ],
+    "time": {"from": "now-6h", "to": "now"}
+  },
+  "overwrite": true
+}

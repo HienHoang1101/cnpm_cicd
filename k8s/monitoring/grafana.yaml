@@ -15,6 +15,22 @@ data:
         access: proxy
         isDefault: true
         editable: false
+      
+      - name: Loki
+        type: loki
+        uid: loki
+        url: http://loki:3100
+        access: proxy
+        editable: false
+
+      - name: Alertmanager
+        type: alertmanager
+        uid: alertmanager
+        url: http://alertmanager:9093
+        access: proxy
+        editable: false
+        jsonData:
+          implementation: prometheus
 
 ---
 # Grafana Dashboard Provider ConfigMap
@@ -89,6 +105,8 @@ spec:
               mountPath: /etc/grafana/provisioning/dashboards
             - name: dashboards
               mountPath: /var/lib/grafana/dashboards
+            - name: alerting
+              mountPath: /etc/grafana/provisioning/alerting
           resources:
             requests:
               memory: "128Mi"
@@ -109,6 +127,9 @@ spec:
         - name: dashboards
           configMap:
             name: grafana-dashboards
+        - name: alerting
+          configMap:
+            name: grafana-alerting
 
 ---
 apiVersion: v1

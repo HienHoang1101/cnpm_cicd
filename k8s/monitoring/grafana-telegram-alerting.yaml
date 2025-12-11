@@ -1,0 +1,290 @@
+# Grafana Alerting ConfigMap - Telegram Notifications
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-alerting
+  namespace: monitoring
+data:
+  alerting.yaml: |
+    apiVersion: 1
+
+    # Contact points - Telegram
+    contactPoints:
+      - orgId: 1
+        name: telegram-alerts
+        receivers:
+          - uid: telegram-primary
+            type: telegram
+            settings:
+              bottoken: "8286318328:AAFXLEhcgky5Tk3SeV4kRw5K9WnBcnXWtgE"
+              chatid: "8257336416"
+              parse_mode: "HTML"
+              disable_notification: false
+            disableResolveMessage: false
+
+      - orgId: 1
+        name: telegram-critical
+        receivers:
+          - uid: telegram-critical-channel
+            type: telegram
+            settings:
+              bottoken: "8286318328:AAFXLEhcgky5Tk3SeV4kRw5K9WnBcnXWtgE"
+              chatid: "8257336416"
+              parse_mode: "HTML"
+              disable_notification: false
+            disableResolveMessage: false
+
+    # Notification policies
+    policies:
+      - orgId: 1
+        receiver: telegram-alerts
+        group_by: ['alertname', 'service']
+        group_wait: 30s
+        group_interval: 5m
+        repeat_interval: 4h
+        routes:
+          - receiver: telegram-critical
+            matchers:
+              - severity = critical
+            group_wait: 0s
+            repeat_interval: 15m
+            continue: false
+          - receiver: telegram-alerts
+            matchers:
+              - severity = warning
+            continue: false
+
+    # Templates (optional)
+    templates: []
+
+  stress-test-rules.yaml: |
+    apiVersion: 1
+
+    groups:
+      - orgId: 1
+        name: stress-test-alerts
+        folder: FastFood Monitoring
+        interval: 30s
+        rules:
+          # High Log Volume Alert - Stress Test Detection
+          - uid: high-log-volume
+            title: High Log Volume (Stress Test)
+            condition: C
+            data:
+              - refId: A
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+                datasourceUid: loki
+                model:
+                  expr: 'sum(count_over_time({job=~".+"} [1m]))'
+                  queryType: instant
+              - refId: B
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+                datasourceUid: __expr__
+                model:
+                  type: reduce
+                  expression: A
+                  reducer: last
+              - refId: C
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+                datasourceUid: __expr__
+                model:
+                  type: threshold
+                  expression: B
+                  conditions:
+                    - evaluator:
+                        type: gt
+                        params: [10000]
+            noDataState: OK
+            execErrState: Alerting
+            for: 1m
+            annotations:
+              summary: "High log volume detected - possible stress test running"
+              description: "Log volume exceeded 10,000 logs/minute. Current: {{ humanize $values.B.Value }} logs"
+            labels:
+              severity: warning
+              type: stress-test
+
+          # Extreme Log Volume - System Under Heavy Load
+          - uid: extreme-log-volume
+            title: Extreme Log Volume (System Overload)
+            condition: C
+            data:
+              - refId: A
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+                datasourceUid: loki
+                model:
+                  expr: 'sum(count_over_time({job=~".+"} [1m]))'
+                  queryType: instant
+              - refId: B
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+                datasourceUid: __expr__
+                model:
+                  type: reduce
+                  expression: A
+                  reducer: last
+              - refId: C
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+                datasourceUid: __expr__
+                model:
+                  type: threshold
+                  expression: B
+                  conditions:
+                    - evaluator:
+                        type: gt
+                        params: [50000]
+            noDataState: OK
+            execErrState: Alerting
+            for: 30s
+            annotations:
+              summary: "🚨 EXTREME log volume - system under heavy load!"
+              description: "Log volume exceeded 50,000 logs/minute. System may be overloaded. Current: {{ humanize $values.B.Value }} logs"
+            labels:
+              severity: critical
+              type: stress-test
+
+          # High Error Rate During Stress Test
+          - uid: high-error-rate-stress
+            title: High Error Rate (Stress Test)
+            condition: C
+            data:
+              - refId: A
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+                datasourceUid: loki
+                model:
+                  expr: 'sum(count_over_time({job=~".+"} |~ "error|Error|ERROR|exception|Exception" [5m]))'
+                  queryType: instant
+              - refId: B
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+                datasourceUid: __expr__
+                model:
+                  type: reduce
+                  expression: A
+                  reducer: last
+              - refId: C
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+                datasourceUid: __expr__
+                model:
+                  type: threshold
+                  expression: B
+                  conditions:
+                    - evaluator:
+                        type: gt
+                        params: [1000]
+            noDataState: OK
+            execErrState: Alerting
+            for: 2m
+            annotations:
+              summary: "High error rate detected during stress test"
+              description: "More than 1,000 errors in 5 minutes. Current: {{ humanize $values.B.Value }} errors"
+            labels:
+              severity: critical
+              type: stress-test
+
+      - orgId: 1
+        name: system-resources-alerts
+        folder: FastFood Monitoring
+        interval: 1m
+        rules:
+          # High CPU Usage
+          - uid: high-cpu-usage
+            title: High CPU Usage
+            condition: C
+            data:
+              - refId: A
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+                datasourceUid: prometheus
+                model:
+                  expr: '100 - (avg(irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)'
+                  queryType: instant
+              - refId: B
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+                datasourceUid: __expr__
+                model:
+                  type: reduce
+                  expression: A
+                  reducer: last
+              - refId: C
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+                datasourceUid: __expr__
+                model:
+                  type: threshold
+                  expression: B
+                  conditions:
+                    - evaluator:
+                        type: gt
+                        params: [80]
+            noDataState: OK
+            execErrState: Alerting
+            for: 5m
+            annotations:
+              summary: "High CPU usage detected"
+              description: "CPU usage is above 80%. Current: {{ humanize $values.B.Value }}%"
+            labels:
+              severity: warning
+
+          # High Memory Usage
+          - uid: high-memory-usage
+            title: High Memory Usage
+            condition: C
+            data:
+              - refId: A
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+                datasourceUid: prometheus
+                model:
+                  expr: '(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100'
+                  queryType: instant
+              - refId: B
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+                datasourceUid: __expr__
+                model:
+                  type: reduce
+                  expression: A
+                  reducer: last
+              - refId: C
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+                datasourceUid: __expr__
+                model:
+                  type: threshold
+                  expression: B
+                  conditions:
+                    - evaluator:
+                        type: gt
+                        params: [85]
+            noDataState: OK
+            execErrState: Alerting
+            for: 5m
+            annotations:
+              summary: "High memory usage detected"
+              description: "Memory usage is above 85%. Current: {{ humanize $values.B.Value }}%"
+            labels:
+              severity: warning

@@ -3,16 +3,21 @@
 # 
 # SETUP INSTRUCTIONS:
 # -------------------
-# 1. SLACK: Create Incoming Webhook at https://api.slack.com/apps
-#    - Create new App → Incoming Webhooks → Add to Workspace
-#    - Copy webhook URL and replace SLACK_WEBHOOK_URL_PLACEHOLDER below
+# 1. TELEGRAM (Primary - Recommended):
+#    - Create bot via @BotFather on Telegram → get BOT_TOKEN
+#    - Create group and add bot → get CHAT_ID via getUpdates API
+#    - Replace TELEGRAM_BOT_TOKEN and chat_id below
 #
-# 2. EMAIL (Gmail): 
+# 2. SLACK (Backup): Create Incoming Webhook at https://api.slack.com/apps
+#    - Create new App → Incoming Webhooks → Add to Workspace
+#    - Copy webhook URL and replace slack_api_url below
+#
+# 3. EMAIL (Optional): 
 #    - Enable 2FA on Gmail account
 #    - Generate App Password at https://myaccount.google.com/apppasswords
-#    - Replace SMTP_USERNAME_PLACEHOLDER and SMTP_PASSWORD_PLACEHOLDER below
+#    - Replace SMTP credentials below
 #
-# NOTE: Replace all *_PLACEHOLDER values with your actual credentials
+# NOTE: Replace all placeholder values with your actual credentials
 
 global:
   # Email Configuration (Gmail SMTP)
@@ -29,12 +34,18 @@ global:
   # Set via environment variable SLACK_WEBHOOK_URL or replace SLACK_WEBHOOK_PLACEHOLDER
   slack_api_url: 'https://hooks.slack.com/services/placeholder'
 
+  # Telegram Configuration
+  # 1. Create bot via @BotFather on Telegram → get BOT_TOKEN
+  # 2. Get CHAT_ID: add bot to group/channel, send message, 
+  #    then call https://api.telegram.org/bot<TOKEN>/getUpdates
+  telegram_api_url: 'https://api.telegram.org'
+
 route:
   group_by: ['alertname', 'service', 'severity']
   group_wait: 30s
   group_interval: 5m
   repeat_interval: 4h
-  receiver: 'slack-notifications'
+  receiver: 'telegram-notifications'
   
   routes:
     # 🚨 Critical alerts - immediate notification to all channels
@@ -48,7 +59,7 @@ route:
     # ⚠️ Warning alerts
     - match:
         severity: warning
-      receiver: 'slack-notifications'
+      receiver: 'telegram-notifications'
       group_wait: 1m
       repeat_interval: 1h
 
@@ -62,12 +73,21 @@ route:
     # 💾 Database alerts
     - match_re:
         alertname: 'MongoDB.*|Redis.*'
-      receiver: 'slack-notifications'
+      receiver: 'telegram-notifications'
       group_wait: 30s
       repeat_interval: 30m
 
 receivers:
-  # Default receiver - Slack only
+  # Default receiver - Telegram
+  - name: 'telegram-notifications'
+    telegram_configs:
+      - bot_token: '8286318328:AAFXLEhcgky5Tk3SeV4kRw5K9WnBcnXWtgE'
+        chat_id: 8257336416
+        parse_mode: 'HTML'
+        send_resolved: true
+        message: '{{ if eq .Status "firing" }}🔔 ALERT FIRING{{ else }}✅ RESOLVED{{ end }} - {{ .GroupLabels.alertname }} ({{ if .CommonLabels.severity }}{{ .CommonLabels.severity }}{{ else }}info{{ end }}) {{ if .CommonLabels.service }}Service: {{ .CommonLabels.service }}{{ end }} {{ range .Alerts }}Summary: {{ .Annotations.summary }} | Description: {{ .Annotations.description }}{{ end }}'
+
+  # Slack receiver (backup)
   - name: 'slack-notifications'
     slack_configs:
       - channel: '#fastfood-alerts'
@@ -77,7 +97,7 @@ receivers:
         title: '{{ if eq .Status "firing" }}🔔{{ else }}✅{{ end }} {{ .GroupLabels.alertname }}'
         text: |-
           *Status:* {{ .Status | toUpper }}
-          *Severity:* {{ .CommonLabels.severity | default "info" }}
+          *Severity:* {{ if .CommonLabels.severity }}{{ .CommonLabels.severity }}{{ else }}info{{ end }}
           {{ if .CommonLabels.service }}*Service:* {{ .CommonLabels.service }}{{ end }}
           
           {{ range .Alerts }}
@@ -86,35 +106,14 @@ receivers:
           {{ end }}
         color: '{{ if eq .Status "firing" }}{{ if eq .CommonLabels.severity "critical" }}danger{{ else }}warning{{ end }}{{ else }}good{{ end }}'
 
-  # 🚨 Critical alerts - Slack + Email
+  # 🚨 Critical alerts - Telegram only
   - name: 'critical-alerts'
-    slack_configs:
-      - channel: '#fastfood-critical'
+    telegram_configs:
+      - bot_token: '8286318328:AAFXLEhcgky5Tk3SeV4kRw5K9WnBcnXWtgE'
+        chat_id: 8257336416
+        parse_mode: 'HTML'
         send_resolved: true
-        username: 'FastFood CRITICAL 🚨'
-        icon_emoji: ':rotating_light:'
-        title: '🚨 CRITICAL: {{ .GroupLabels.alertname }}'
-        text: |-
-          *🚨 IMMEDIATE ATTENTION REQUIRED*
-          
-          *Alert:* {{ .GroupLabels.alertname }}
-          *Severity:* CRITICAL
-          {{ if .CommonLabels.service }}*Service:* {{ .CommonLabels.service }}{{ end }}
-          
-          {{ range .Alerts }}
-          ━━━━━━━━━━━━━━━━━━━━
-          *Summary:* {{ .Annotations.summary }}
-          *Description:* {{ .Annotations.description }}
-          {{ end }}
-          
-          <{{ .ExternalURL }}|🔗 View in Alertmanager>
-        color: 'danger'
-    # Email temporarily disabled - uncomment when Gmail App Password is configured
-    # email_configs:
-    #   - to: 'admin@your-company.com'
-    #     send_resolved: true
-    #     headers:
-    #       Subject: '🚨 [CRITICAL] {{ .GroupLabels.alertname }} - FastFood Delivery'
+        message: '🚨🚨🚨 CRITICAL ALERT 🚨🚨🚨 - {{ .GroupLabels.alertname }} {{ if .CommonLabels.service }}(Service: {{ .CommonLabels.service }}){{ end }} {{ range .Alerts }}Summary: {{ .Annotations.summary }} | Description: {{ .Annotations.description }}{{ end }} ⚠️ IMMEDIATE ACTION REQUIRED'
 
 inhibit_rules:
   # Suppress warning if critical is firing for same alert

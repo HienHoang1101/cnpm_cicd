@@ -1,0 +1,256 @@
+apiVersion: 1
+
+# Contact Points - Telegram notification
+contactPoints:
+  - orgId: 1
+    name: telegram-alerts
+    receivers:
+      - uid: telegram-fastfood
+        type: telegram
+        settings:
+          bottoken: "8286318328:AAFXLEhcgky5Tk3SeV4kRw5K9WnBcnXWtgE"
+          chatid: "8257336416"
+          message: |
+            🔔 *Grafana Alert*
+            
+            *Alert:* {{ .CommonLabels.alertname }}
+            *Status:* {{ .Status }}
+            
+            {{ range .Alerts }}
+            📊 *Summary:* {{ .Annotations.summary }}
+            📝 *Description:* {{ .Annotations.description }}
+            {{ end }}
+        disableResolveMessage: false
+
+# Notification Policies
+policies:
+  - orgId: 1
+    receiver: telegram-alerts
+    group_by:
+      - grafana_folder
+      - alertname
+    group_wait: 30s
+    group_interval: 5m
+    repeat_interval: 4h
+
+# Alert Rules for High Load / Logging
+groups:
+  - orgId: 1
+    name: HighLoadAlerts
+    folder: FastFood Alerts
+    interval: 1m
+    rules:
+      # High CPU Usage Alert
+      - uid: high-cpu-usage
+        title: High CPU Usage
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+              instant: true
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 80
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    type: last
+              refId: C
+              type: classic_conditions
+        noDataState: NoData
+        execErrState: Error
+        for: 2m
+        annotations:
+          summary: "CPU usage is above 80%"
+          description: "High CPU load detected - possible stress test or overload"
+        labels:
+          severity: warning
+
+      # High Memory Usage Alert
+      - uid: high-memory-usage
+        title: High Memory Usage
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100
+              instant: true
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 85
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    type: last
+              refId: C
+              type: classic_conditions
+        noDataState: NoData
+        execErrState: Error
+        for: 2m
+        annotations:
+          summary: "Memory usage is above 85%"
+          description: "High memory consumption detected"
+        labels:
+          severity: warning
+
+      # High Request Rate Alert (Stress Test Detection)
+      - uid: high-request-rate
+        title: High Request Rate (Possible Stress Test)
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sum(rate(http_requests_total[1m])) * 60
+              instant: true
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 1000
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    type: last
+              refId: C
+              type: classic_conditions
+        noDataState: NoData
+        execErrState: Error
+        for: 1m
+        annotations:
+          summary: "Request rate exceeds 1000 req/min"
+          description: "Abnormally high request rate detected - possible load test or attack"
+        labels:
+          severity: critical
+
+      # High Log Volume Alert
+      - uid: high-log-volume
+        title: High Log Volume (Logging Stress)
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: loki
+            model:
+              expr: sum(count_over_time({job=~".+"} [1m]))
+              instant: true
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 10000
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    type: last
+              refId: C
+              type: classic_conditions
+        noDataState: NoData
+        execErrState: Error
+        for: 1m
+        annotations:
+          summary: "Log volume exceeds 10,000 logs/min"
+          description: "Extremely high logging activity - system under stress"
+        labels:
+          severity: warning
+
+      # High Error Rate in Logs
+      - uid: high-error-log-rate
+        title: High Error Rate in Logs
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: loki
+            model:
+              expr: sum(count_over_time({job=~".+"} |~ "(?i)error|exception|fatal" [1m]))
+              instant: true
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 100
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    type: last
+              refId: C
+              type: classic_conditions
+        noDataState: NoData
+        execErrState: Error
+        for: 1m
+        annotations:
+          summary: "Error log rate exceeds 100/min"
+          description: "High number of errors detected in logs"
+        labels:
+          severity: critical

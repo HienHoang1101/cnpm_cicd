@@ -2,7 +2,7 @@
 
 ## Overview
 
-Alertmanager xử lý alerts được gửi từ Prometheus và route chúng đến các receivers như Slack, Email.
+Alertmanager xử lý alerts được gửi từ Prometheus và route chúng đến các receivers như Telegram, Slack, Email.
 
 ## 📋 Quick Setup
 
@@ -18,7 +18,55 @@ nano monitoring/alertmanager/secrets.env
 
 **⚠️ QUAN TRỌNG:** File `secrets.env` chứa credentials và KHÔNG được commit lên git!
 
-### 2. Slack Configuration
+---
+
+## 📱 Telegram Configuration (Recommended - Primary)
+
+### Bước 1: Tạo Telegram Bot
+1. Mở Telegram và tìm **@BotFather**
+2. Gửi lệnh `/newbot`
+3. Đặt tên bot (ví dụ: `FastFood Alerts Bot`)
+4. Đặt username (ví dụ: `fastfood_alerts_bot`)
+5. **Copy Bot Token** được cấp (dạng: `123456789:ABCdefGHIjklMNOpqrsTUVwxyz`)
+
+### Bước 2: Lấy Chat ID
+
+**Cách A: Tạo Group mới**
+1. Tạo Telegram Group mới
+2. Thêm bot vào group (tìm theo username)
+3. Gửi một tin nhắn bất kỳ trong group
+4. Truy cập URL: `https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates`
+5. Tìm `"chat":{"id": -123456789}` trong response
+6. **Chat ID là số âm cho group** (ví dụ: `-123456789`)
+
+**Cách B: Chat trực tiếp với bot**
+1. Mở chat với bot của bạn
+2. Gửi `/start`
+3. Truy cập: `https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates`
+4. Tìm chat ID (số dương cho private chat)
+
+### Bước 3: Cập nhật Config
+Mở `monitoring/alertmanager/alertmanager.yml` và thay thế:
+
+```yaml
+receivers:
+  - name: 'telegram-notifications'
+    telegram_configs:
+      - bot_token: '123456789:ABCdefGHIjklMNOpqrsTUVwxyz'  # Your bot token
+        chat_id: -123456789  # Your chat/group ID (integer)
+```
+
+### Bước 4: Test Telegram Bot
+```bash
+# Test gửi message
+curl -X POST "https://api.telegram.org/bot<YOUR_TOKEN>/sendMessage" \
+  -d "chat_id=<YOUR_CHAT_ID>" \
+  -d "text=🔔 Test alert from FastFood Monitoring"
+```
+
+---
+
+## 💬 Slack Configuration (Backup)
 
 #### Bước 1: Tạo Slack App
 1. Truy cập https://api.slack.com/apps
@@ -94,13 +142,18 @@ curl http://localhost:9093/-/healthy
 
 | Severity | Receiver | Channels |
 |----------|----------|----------|
-| Critical | `critical-alerts` | Slack + Email |
-| Warning | `slack-notifications` | Slack only |
-| Database | `slack-notifications` | Slack only |
+| Critical | `critical-alerts` | Telegram + Slack |
+| Warning | `telegram-notifications` | Telegram |
+| Database | `telegram-notifications` | Telegram |
 
 ## 📱 Alert Channels
 
-### Slack Channels (Recommended)
+### Telegram (Primary - Recommended)
+- Tạo Group riêng cho alerts
+- Bot sẽ gửi thông báo real-time
+- Hỗ trợ rich formatting với HTML
+
+### Slack Channels (Backup)
 - `#fastfood-alerts` - General alerts
 - `#fastfood-critical` - Critical alerts only
 
@@ -177,9 +230,12 @@ docker exec alertmanager amtool check-config /etc/alertmanager/alertmanager.yml
 ```
 monitoring/alertmanager/
 ├── alertmanager.yml          # Main config
+├── secrets.env.example       # Secrets template
+├── secrets.env               # Your secrets (DO NOT COMMIT)
 ├── templates/
 │   ├── email.tmpl           # Email templates
-│   └── slack.tmpl           # Slack templates
+│   ├── slack.tmpl           # Slack templates
+│   └── telegram.tmpl        # Telegram templates
 ```
 
 ## 🔄 Reload Config Without Restart

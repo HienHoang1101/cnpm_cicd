@@ -18,7 +18,7 @@ data:
     alerting:
       alertmanagers:
         - static_configs:
-            - targets: []
+            - targets: ['alertmanager:9093']
 
     # Load rules
     rule_files:

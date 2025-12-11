@@ -1,0 +1,136 @@
+# Alertmanager ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-config
+  namespace: monitoring
+data:
+  alertmanager.yml: |
+    global:
+      resolve_timeout: 5m
+      telegram_api_url: 'https://api.telegram.org'
+
+    route:
+      group_by: ['alertname', 'service', 'severity']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      receiver: 'telegram-notifications'
+      
+      routes:
+        - match:
+            severity: critical
+          receiver: 'telegram-critical'
+          group_wait: 0s
+          repeat_interval: 15m
+
+        - match:
+            severity: warning
+          receiver: 'telegram-notifications'
+          group_wait: 1m
+          repeat_interval: 1h
+
+    receivers:
+      - name: 'telegram-notifications'
+        telegram_configs:
+          - bot_token_file: /etc/alertmanager/secrets/bot-token
+            chat_id: 8257336416
+            parse_mode: 'HTML'
+            send_resolved: true
+            message: '{{ if eq .Status "firing" }}🔔 ALERT{{ else }}✅ RESOLVED{{ end }} - {{ .GroupLabels.alertname }} {{ if .CommonLabels.service }}({{ .CommonLabels.service }}){{ end }} {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+
+      - name: 'telegram-critical'
+        telegram_configs:
+          - bot_token_file: /etc/alertmanager/secrets/bot-token
+            chat_id: 8257336416
+            parse_mode: 'HTML'
+            send_resolved: true
+            message: '🚨🚨🚨 CRITICAL - {{ .GroupLabels.alertname }} {{ if .CommonLabels.service }}({{ .CommonLabels.service }}){{ end }} {{ range .Alerts }}{{ .Annotations.summary }} | {{ .Annotations.description }}{{ end }} ⚠️ IMMEDIATE ACTION REQUIRED'
+
+    inhibit_rules:
+      - source_match:
+          severity: 'critical'
+        target_match:
+          severity: 'warning'
+        equal: ['alertname', 'service']
+
+---
+# Alertmanager Secret (Telegram Bot Token)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: alertmanager-telegram-secret
+  namespace: monitoring
+type: Opaque
+stringData:
+  bot-token: "8286318328:AAFXLEhcgky5Tk3SeV4kRw5K9WnBcnXWtgE"
+
+---
+# Alertmanager Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alertmanager
+  namespace: monitoring
+  labels:
+    app: alertmanager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alertmanager
+  template:
+    metadata:
+      labels:
+        app: alertmanager
+    spec:
+      containers:
+        - name: alertmanager
+          image: prom/alertmanager:v0.26.0
+          args:
+            - '--config.file=/etc/alertmanager/alertmanager.yml'
+            - '--storage.path=/alertmanager'
+            - '--web.external-url=http://alertmanager:9093'
+          ports:
+            - containerPort: 9093
+          volumeMounts:
+            - name: config
+              mountPath: /etc/alertmanager
+            - name: secrets
+              mountPath: /etc/alertmanager/secrets
+              readOnly: true
+            - name: storage
+              mountPath: /alertmanager
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "25m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+      volumes:
+        - name: config
+          configMap:
+            name: alertmanager-config
+        - name: secrets
+          secret:
+            secretName: alertmanager-telegram-secret
+        - name: storage
+          emptyDir: {}
+
+---
+# Alertmanager Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: alertmanager
+  namespace: monitoring
+  labels:
+    app: alertmanager
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9093
+      targetPort: 9093
+  selector:
+    app: alertmanager
