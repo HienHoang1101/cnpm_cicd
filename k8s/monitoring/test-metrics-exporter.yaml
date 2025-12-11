@@ -117,6 +117,36 @@ spec:
                 res.json({ success: true });
               });
               
+              // NEW: Endpoint to receive test results from GitHub Actions
+              app.post('/api/test-results', (req, res) => {
+                const data = req.body;
+                console.log('Received test results:', JSON.stringify(data));
+                
+                // Update summary
+                testMetrics.summary = {
+                  total: parseInt(data.total) || 0,
+                  passed: parseInt(data.passed) || 0,
+                  failed: parseInt(data.failed) || 0,
+                  skipped: parseInt(data.skipped) || 0,
+                  coverage: parseFloat(data.coverage) || 0
+                };
+                testMetrics.lastRun = new Date().toISOString();
+                
+                // Update service-level metrics
+                if (data.services) {
+                  Object.keys(data.services).forEach(service => {
+                    testMetrics.services[service] = {
+                      total: data.services[service].total || 0,
+                      passed: data.services[service].passed || 0,
+                      failed: data.services[service].failed || 0
+                    };
+                  });
+                }
+                
+                console.log('Test metrics updated:', testMetrics.summary);
+                res.json({ success: true, summary: testMetrics.summary });
+              });
+              
               app.get('/metrics', (req, res) => {
                 const s = testMetrics.summary;
                 const passRate = s.total > 0 ? (s.passed / s.total * 100).toFixed(2) : 0;

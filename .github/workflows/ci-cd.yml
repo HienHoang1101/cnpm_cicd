@@ -796,7 +796,109 @@ jobs:
         run: |
           cat final-report/README.md >> $GITHUB_STEP_SUMMARY
 
-      - name: 📝 Create Test Summary
+      - name: � Push Test Metrics to Grafana
+        if: always()
+        run: |
+          # Parse test results from junit.xml files
+          TOTAL_TESTS=0
+          PASSED_TESTS=0
+          FAILED_TESTS=0
+          SKIPPED_TESTS=0
+          
+          # Service-level metrics
+          declare -A SERVICE_TOTAL
+          declare -A SERVICE_PASSED
+          declare -A SERVICE_FAILED
+          
+          SERVICES="auth order restaurant payment-service notification-service admin-service food-delivery-server"
+          
+          for service in $SERVICES; do
+            SERVICE_TOTAL[$service]=0
+            SERVICE_PASSED[$service]=0
+            SERVICE_FAILED[$service]=0
+            
+            # Check for junit.xml
+            JUNIT_FILE=""
+            if [ -f "all-reports/unit-test-results-$service/reports/junit.xml" ]; then
+              JUNIT_FILE="all-reports/unit-test-results-$service/reports/junit.xml"
+            elif [ -f "all-reports/unit-test-results-$service/junit.xml" ]; then
+              JUNIT_FILE="all-reports/unit-test-results-$service/junit.xml"
+            fi
+            
+            if [ -n "$JUNIT_FILE" ]; then
+              echo "📊 Parsing $JUNIT_FILE"
+              
+              # Parse junit.xml using grep/sed
+              tests=$(grep -oP 'tests="\K[0-9]+' "$JUNIT_FILE" | head -1 || echo "0")
+              failures=$(grep -oP 'failures="\K[0-9]+' "$JUNIT_FILE" | head -1 || echo "0")
+              skipped=$(grep -oP 'skipped="\K[0-9]+' "$JUNIT_FILE" | head -1 || echo "0")
+              
+              tests=${tests:-0}
+              failures=${failures:-0}
+              skipped=${skipped:-0}
+              passed=$((tests - failures - skipped))
+              
+              SERVICE_TOTAL[$service]=$tests
+              SERVICE_PASSED[$service]=$passed
+              SERVICE_FAILED[$service]=$failures
+              
+              TOTAL_TESTS=$((TOTAL_TESTS + tests))
+              PASSED_TESTS=$((PASSED_TESTS + passed))
+              FAILED_TESTS=$((FAILED_TESTS + failures))
+              SKIPPED_TESTS=$((SKIPPED_TESTS + skipped))
+              
+              echo "  ✅ $service: $tests tests, $passed passed, $failures failed"
+            fi
+          done
+          
+          # Calculate pass rate
+          if [ $TOTAL_TESTS -gt 0 ]; then
+            PASS_RATE=$(echo "scale=2; $PASSED_TESTS * 100 / $TOTAL_TESTS" | bc)
+          else
+            PASS_RATE=0
+          fi
+          
+          # Get coverage from coverage-summary.json
+          COVERAGE=0
+          for service in $SERVICES; do
+            if [ -f "all-reports/unit-test-results-$service/coverage/coverage-summary.json" ]; then
+              cov=$(cat "all-reports/unit-test-results-$service/coverage/coverage-summary.json" | jq -r '.total.lines.pct // 0')
+              if [ "$cov" != "null" ] && [ "$cov" != "0" ]; then
+                COVERAGE=$cov
+                break
+              fi
+            fi
+          done
+          
+          echo "📊 Total: $TOTAL_TESTS tests, $PASSED_TESTS passed, $FAILED_TESTS failed, Pass Rate: $PASS_RATE%"
+          
+          # Build service metrics JSON
+          SERVICE_METRICS=""
+          for service in $SERVICES; do
+            # Convert service name to match exporter format (e.g., payment-service -> payment)
+            short_name=$(echo "$service" | sed 's/-service//')
+            SERVICE_METRICS="$SERVICE_METRICS\"$short_name\": {\"total\": ${SERVICE_TOTAL[$service]}, \"passed\": ${SERVICE_PASSED[$service]}, \"failed\": ${SERVICE_FAILED[$service]}},"
+          done
+          SERVICE_METRICS="${SERVICE_METRICS%,}"
+          
+          # Push to test-metrics-exporter
+          curl -X POST "${{ secrets.TEST_METRICS_URL || 'http://34.124.159.231:9091' }}/api/test-results" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"total\": $TOTAL_TESTS,
+              \"passed\": $PASSED_TESTS,
+              \"failed\": $FAILED_TESTS,
+              \"skipped\": $SKIPPED_TESTS,
+              \"passRate\": $PASS_RATE,
+              \"coverage\": $COVERAGE,
+              \"services\": {$SERVICE_METRICS},
+              \"repository\": \"${{ github.repository }}\",
+              \"branch\": \"${{ github.ref_name }}\",
+              \"commit\": \"${{ github.sha }}\",
+              \"runNumber\": ${{ github.run_number }}
+            }" || echo "⚠️ Failed to push test metrics"
+
+      - name: �📝 Create Test Summary
         uses: test-summary/action@v2
         with:
           paths: |
