@@ -175,14 +175,12 @@ jobs:
             echo "📊 Parsed from output: total=$TESTS_TOTAL, passed=$TESTS_PASSED, failed=$TESTS_FAILED"
             
             # Create junit.xml with actual test counts
-            cat > reports/junit.xml << EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="${{ matrix.service }}" tests="$TESTS_TOTAL" failures="$TESTS_FAILED" errors="0" skipped="0">
-  <testsuite name="${{ matrix.service }}" tests="$TESTS_TOTAL" failures="$TESTS_FAILED" errors="0" skipped="0">
-    <testcase classname="${{ matrix.service }}" name="Aggregated Tests" time="0"/>
-  </testsuite>
-</testsuites>
-EOF
+            echo '<?xml version="1.0" encoding="UTF-8"?>' > reports/junit.xml
+            echo "<testsuites name=\"${{ matrix.service }}\" tests=\"$TESTS_TOTAL\" failures=\"$TESTS_FAILED\" errors=\"0\" skipped=\"0\">" >> reports/junit.xml
+            echo "  <testsuite name=\"${{ matrix.service }}\" tests=\"$TESTS_TOTAL\" failures=\"$TESTS_FAILED\" errors=\"0\" skipped=\"0\">" >> reports/junit.xml
+            echo "    <testcase classname=\"${{ matrix.service }}\" name=\"Aggregated Tests\" time=\"0\"/>" >> reports/junit.xml
+            echo "  </testsuite>" >> reports/junit.xml
+            echo "</testsuites>" >> reports/junit.xml
             echo "✅ Created junit.xml with test counts from output"
           fi
         env:
