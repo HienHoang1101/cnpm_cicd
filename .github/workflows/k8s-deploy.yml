@@ -116,16 +116,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up kubectl
-        uses: azure/setup-kubectl@v3
+      - name: 🔐 Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
         with:
-          version: 'v1.28.0'
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-      - name: Configure kubectl
+      - name: ☁️ Setup Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: fastfood-cicd-2025
+
+      - name: 🔧 Configure kubectl for GKE
         run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > $HOME/.kube/config
-          chmod 600 $HOME/.kube/config
+          gcloud container clusters get-credentials fastfood-cluster \
+            --region asia-southeast1 \
+            --project fastfood-cicd-2025
 
       - name: Verify cluster connection
         run: |
